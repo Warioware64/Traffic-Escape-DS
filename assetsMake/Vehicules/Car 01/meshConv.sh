@@ -4,6 +4,6 @@ OBJ2DL=/opt/wonderful/thirdparty/blocksds/external/nitro-engine/tools/obj2dl/obj
 
 $OBJ2DL \
     --input Car.obj \
-    --output ../../../nitrofiles/Vehicules/Meshes/Car_01.bin \
+    --output ../../../nitrofiles/Vehicules/Meshes/Car.bin \
     --scale 0.5 \
     --texture 128 128

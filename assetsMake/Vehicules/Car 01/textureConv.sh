@@ -20,7 +20,7 @@ $PTEXCONV \
     -gt \
     -og \
     -o ../../../nitrofiles/Vehicules/Textures/car_gray \
-    car.png \
+    car_gray.png \
     -f tex4x4
 
 $PTEXCONV \
@@ -29,3 +29,4 @@ $PTEXCONV \
     -o ../../../nitrofiles/Vehicules/Textures/car_red \
     car_red.png \
     -f tex4x4
+
