@@ -4,6 +4,8 @@ declare -a vehicules_scripts=("Car 01" "Car 02" "Car 03" "Car 04" "Car 05" "Car 
 
 for i in "${vehicules_scripts[@]}"
 do
-    /Vehicules/"$i"/meshConv.sh
-    /Vehicules/"$i"/textureConv.sh
+    cd Vehicules/"$i"
+    ./meshConv.sh
+    ./textureConv.sh
+    cd ../../
 done

@@ -4,9 +4,11 @@
 #include "etl/profiles/armv5.h"
 #include "etl/vector.h"
 #include "InitEngineMode.hpp"
-#include "car_combined_bin.h"
-#include "car_pal_bin.h"
-#include "teapot_bin.h"
+//#include "car_combined_bin.h"
+#include "Vehicules/Meshes/Car_bin.h"
+#include "Vehicules/Textures/car_pal_bin.h"
+#include "Vehicules/Textures/car_tex_bin.h"
+//#include "teapot_bin.h"
 
 
 __attribute__((noreturn)) void wait_forever(void)
@@ -116,12 +118,20 @@ int main(int argc, char **argv)
         // Load texture
     glGenTextures(1, &textureID);
     glBindTexture(0, textureID);
-    if (glTexImage2D(0, 0, GL_RGB256, 128, 128, 0, TEXGEN_TEXCOORD, car_combined_bin) == 0)
+    void *car_texture = malloc(16384);
+    decompress(car_tex_bin, (uint8_t*)car_texture, LZ77);
+
+    if (glTexImage2D(0, 0, GL_RGB256, 128, 128, 0, TEXGEN_TEXCOORD, car_texture) == 0)
     {
         printf("Failed to load texture\n");
         wait_forever();
     }
-    if (glColorTableEXT(0, 0, car_pal_bin_size / 2, 0, 0, (const uint16_t *)car_pal_bin) == 0)
+
+    void *car_palette = malloc(512);
+    
+    decompress(car_pal_bin, (uint8_t*)car_palette, LZ77);
+
+    if (glColorTableEXT(0, 0, 256, 0, 0, (const uint16_t *)car_palette) == 0)
     {
         printf("Failed to load palette\n");
         wait_forever();
@@ -137,12 +147,15 @@ int main(int argc, char **argv)
     data.push_back(35);
     data.push_back(42);*/
     
-    void *car;
+    void *car = malloc(15136);
+    decompress(Car_bin, (uint8_t*)car, LZ77);
+
+    /*void *car;
     if (!file_load("Vehicules/Meshes/Car.bin", &car, NULL))
     {
         printf("Failed to load file\n");
         wait_forever();
-    }
+    }*/
 
     /*
     typedef struct {
@@ -196,7 +209,7 @@ int main(int argc, char **argv)
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         //gluLookAt(0,0,4, 0,0,0, 0,1,0);
-        gluLookAt(0.0, 0.0, 4.0,  // Position
+        gluLookAt(0.0, 3.0, 4.0,  // Position
                   0.0, 0.0, 0.0,  // Look at
                   0.0, 1.0, 0.0); // Up
         glPushMatrix();
