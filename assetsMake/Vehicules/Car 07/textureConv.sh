@@ -4,42 +4,48 @@ PTEXCONV=/opt/wonderful/thirdparty/blocksds/external/ptexconv/ptexconv
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7 \
-    car7.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7 \
+    -f palette256 \
+    car7.png
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7_black \
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7_black \
+    -f palette256 \
     car7_black.png \
-    -f tex4x4
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7_brown \
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7_brown \
+    -f palette256 \
     car7_brown.png \
-    -f tex4x4
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7_green \
-    car7_green.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7_green \
+    -f palette256 \
+    car7_green.png
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7_grey \
-    car7_grey.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7_grey \
+    -f palette256 \
+    car7_grey.png
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car7_red \
-    car7_red.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car7_red \
+    -f palette256 \
+    car7_red.png
+    

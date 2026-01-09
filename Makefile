@@ -14,7 +14,7 @@ NITROFSDIR	:= nitrofiles
 # Source code paths
 
 AUDIODIRS	:= audio
-
+BINDIRS 	:= bin
 # Libraries
 
 LIBS		:= -lnds9 -lmm9

@@ -4,21 +4,24 @@ PTEXCONV=/opt/wonderful/thirdparty/blocksds/external/ptexconv/ptexconv
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car2 \
-    car2.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car2 \
+    -f palette256 \
+    car2.png
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car2_black \
-    car2_black.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car2_black \
+    -f palette256 \
+    car2_black.png
+    
 
 $PTEXCONV \
     -gt \
-    -og \
-    -o ../../../nitrofiles/Vehicules/Textures/car2_red \
-    car2_red.png \
-    -f tex4x4
+    -ob \
+    -o ../../../bin/Vehicules/Textures/car2_red \
+    -f palette256 \
+    car2_red.png
+    
