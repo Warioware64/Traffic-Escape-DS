@@ -8,8 +8,10 @@
 #include "Vehicules/Meshes/Car_bin.h"
 #include "Vehicules/Textures/car_pal_bin.h"
 #include "Vehicules/Textures/car_tex_bin.h"
+#include "Vehicules/Meshes/gridv2_bin.h"
 //#include "teapot_bin.h"
-
+#include "Vehicules/Textures/gridTex_pal_bin.h"
+#include "Vehicules/Textures/gridTex_tex_bin.h"
 
 __attribute__((noreturn)) void wait_forever(void)
 {
@@ -94,6 +96,7 @@ int main(int argc, char **argv)
     consoleDemoInit();
     lcdMainOnBottom();
     int textureID;
+    int textureGridTest;
 
     nitroFSInit(NULL);
 
@@ -136,6 +139,13 @@ int main(int argc, char **argv)
         printf("Failed to load palette\n");
         wait_forever();
     }
+
+    glGenTextures(1, &textureGridTest);
+    glBindTexture(0, textureGridTest);
+
+    glTexImage2D(0,0, GL_RGB16, 8, 16, 0 , TEXGEN_TEXCOORD, gridTex_tex_bin);
+    glColorTableEXT(0, 0, 16, 0, 0, (const uint16_t *)gridTex_pal_bin);
+
     //glDisable(GL_TEXTURE_2D);
     /*
     etl::vector<uint8_t, 64> data;
@@ -199,17 +209,29 @@ int main(int argc, char **argv)
     glMaterialf(GL_EMISSION, RGB15(5, 5, 5));
 
     // Setup lights
+    double x_pos = 0.0;
+    double z_pos = -4.0;
     glLight(0, RGB15(31, 31, 31), floattov10(-1), floattov10(0), floattov10(0));
     glLight(1, RGB15(31, 31, 31), floattov10(0), floattov10(0), floattov10(-1));
     while (1)
     {
         swiWaitForVBlank();
 
-
+        scanKeys();
+        int held = keysHeld();
+        if (held & KEY_UP)
+            z_pos += 0.1;
+        if (held & KEY_DOWN)
+            z_pos -= 0.1;
+        if (held & KEY_LEFT)
+            x_pos -= 0.1;
+        if (held & KEY_RIGHT)
+            x_pos += 0.1;
+        
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         //gluLookAt(0,0,4, 0,0,0, 0,1,0);
-        gluLookAt(0.0, 3.0, 4.0,  // Position
+        gluLookAt(x_pos, 3.0, z_pos,  // Position
                   0.0, 0.0, 0.0,  // Look at
                   0.0, 1.0, 0.0); // Up
         glPushMatrix();
@@ -220,7 +242,24 @@ int main(int argc, char **argv)
             POLY_FORMAT_LIGHT1
         );
         glColor3b(0,0,0);
+        glBindTexture(0, textureID);
         glCallList(car);
+        glPopMatrix(1);
+
+        glPushMatrix();
+        glPolyFmt(
+            POLY_ALPHA(31) |
+            POLY_CULL_BACK |
+            POLY_FORMAT_LIGHT0 |
+            POLY_FORMAT_LIGHT1
+        );
+
+        //glColor3b(0,0,0);
+        
+        glBindTexture(0, textureGridTest);
+        glCallList(gridv2_bin);
+        glPopMatrix(1);
+
         //glPopMatrix(1);
         glFlush(GL_ZBUFFERING);
     }
