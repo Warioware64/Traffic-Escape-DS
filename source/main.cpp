@@ -1,267 +1,70 @@
+
+
+
 #include <nds.h>
 #include <stdio.h>
 #include <filesystem.h>
 #include "etl/profiles/armv5.h"
 #include "etl/vector.h"
-#include "InitEngineMode.hpp"
-//#include "car_combined_bin.h"
-#include "Vehicules/Meshes/Car_bin.h"
-#include "Vehicules/Textures/car_pal_bin.h"
-#include "Vehicules/Textures/car_tex_bin.h"
-#include "Vehicules/Meshes/gridv2_bin.h"
-//#include "teapot_bin.h"
-#include "Vehicules/Textures/gridTex_pal_bin.h"
-#include "Vehicules/Textures/gridTex_tex_bin.h"
+#include <NEMain.h>
+#include "CarsAssets128128.h"
 
-__attribute__((noreturn)) void wait_forever(void)
+typedef struct {
+    int placeholder;
+    NE_Material *material;
+    NE_Palette *palette;
+    NE_Sprite *sprite;
+} SceneData;
+
+void Draw3DScene(void *arg)
 {
-    printf("Press START to exit.");
+    SceneData *Scene = arg;
 
-    while (1)
-    {
-        swiWaitForVBlank();
+    //(void)Scene; // Silence unused variable warning
 
-        scanKeys();
-        if (keysHeld() & KEY_START)
-            exit(1);
-    }
+    NE_2DViewInit();
+    NE_SpriteDrawAll();
 }
 
-bool file_load(const char *path, void **buffer, size_t *size)
+int main(int argc, char *argv[])
 {
-    // Open the file in read binary mode
-    FILE *f = fopen(path, "rb");
-    if (f == NULL)
-    {
-        perror("fopen");
-        return false;
-    }
+    SceneData Scene = { 0 };
 
-    // Move read cursor to the end of the file
-    int ret = fseek(f, 0, SEEK_END);
-    if (ret != 0)
-    {
-        perror("fseek");
-        return false;
-    }
+    irqEnable(IRQ_HBLANK);
+    irqSet(IRQ_VBLANK, NE_VBLFunc);
+    irqSet(IRQ_HBLANK, NE_HBLFunc);
 
-    // Check position of the cursor (we're at the end, so this is the size)
-    size_t size_ = ftell(f);
-    if (size_ == 0)
-    {
-        printf("Size is 0!");
-        fclose(f);
-        return false;
-    }
+    NE_Init3D();
+    NE_InitConsole();
 
-    // Move cursor to the start of the file again
-    rewind(f);
-
-    // Allocate buffer to hold data
-    *buffer = malloc(size_);
-    if (*buffer == NULL)
-    {
-        printf("Not enought memory to load %s!", path);
-        fclose(f);
-        return false;
-    }
-
-    // Read all data into the buffer
-    if (fread(*buffer, size_, 1, f) != 1)
-    {
-        perror("fread");
-        fclose(f);
-        free(*buffer);
-        return false;
-    }
-
-    // Close file
-    ret = fclose(f);
-    if (ret != 0)
-    {
-        perror("fclose");
-        free(*buffer);
-        return false;
-    }
-
-    if (size)
-        *size = size_;
-
-    return true;
-}
-
-
-int main(int argc, char **argv)
-{
-    consoleDemoInit();
-    lcdMainOnBottom();
-    int textureID;
-    int textureGridTest;
-
+    Scene.material = NE_MaterialCreate();
+    Scene.palette = NE_PaletteCreate();
     nitroFSInit(NULL);
+    NE_MaterialTexLoad(Scene.material, NE_PAL256, 128, 128,
+                          NE_TEXTURE_COLOR0_TRANSPARENT,
+                          CarsAssets128128Bitmap);
 
-    videoSetMode(MODE_0_3D);
+    NE_PaletteLoad(Scene.palette, CarsAssets128128Pal, 256, NE_PAL256);
+    NE_MaterialSetPalette(Scene.material, Scene.palette);
 
-    glInit();
+    //NE_MaterialTexLoadGRF(Scene.material, Scene.palette, NE_TEXGEN_TEXCOORD,"nitro:/CarsAssets128128.grf");
 
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_ANTIALIAS);
-    glEnable(GL_BLEND);
-
-    glClearColor(0, 0, 0, 0);
-    glClearPolyID(63);
-    glClearDepth(0x7FFF);
-
-    glViewport(0, 0, 255, 191);
-
-    vramSetBankA(VRAM_A_TEXTURE);
-    vramSetBankB(VRAM_B_TEXTURE);
-    vramSetBankE(VRAM_E_TEX_PALETTE);
-
-        // Load texture
-    glGenTextures(1, &textureID);
-    glBindTexture(0, textureID);
-    void *car_texture = malloc(16384);
-    decompress(car_tex_bin, (uint8_t*)car_texture, LZ77);
-
-    if (glTexImage2D(0, 0, GL_RGB256, 128, 128, 0, TEXGEN_TEXCOORD, car_texture) == 0)
-    {
-        printf("Failed to load texture\n");
-        wait_forever();
-    }
-
-    void *car_palette = malloc(512);
+    Scene.sprite = NE_SpriteCreate();
     
-    decompress(car_pal_bin, (uint8_t*)car_palette, LZ77);
+    NE_SpriteSetMaterial(Scene.sprite, Scene.material);
+    NE_SpriteSetMaterialCanvas(Scene.sprite, 0, 3, 20, 43);
+    NE_SpriteSetPos(Scene.sprite, 100, 80);
+    NE_SpriteSetSize(Scene.sprite, 20, 40);
 
-    if (glColorTableEXT(0, 0, 256, 0, 0, (const uint16_t *)car_palette) == 0)
-    {
-        printf("Failed to load palette\n");
-        wait_forever();
-    }
 
-    glGenTextures(1, &textureGridTest);
-    glBindTexture(0, textureGridTest);
-
-    glTexImage2D(0,0, GL_RGB16, 8, 16, 0 , TEXGEN_TEXCOORD, gridTex_tex_bin);
-    glColorTableEXT(0, 0, 16, 0, 0, (const uint16_t *)gridTex_pal_bin);
-
-    //glDisable(GL_TEXTURE_2D);
-    /*
-    etl::vector<uint8_t, 64> data;
-
-    data.push_back(42);
-    data.push_back(15);
-    data.push_back(12);
-    data.push_back(78);
-    data.push_back(35);
-    data.push_back(42);*/
-    
-    void *car = malloc(15136);
-    decompress(Car_bin, (uint8_t*)car, LZ77);
-
-    /*void *car;
-    if (!file_load("Vehicules/Meshes/Car.bin", &car, NULL))
-    {
-        printf("Failed to load file\n");
-        wait_forever();
-    }*/
-
-    /*
-    typedef struct {
-        int width, height;
-        int id;
-    } texture_info_t;*/
-
-#define NUM_TEXTURES 1
-
-    //texture_info_t tex[NUM_TEXTURES] = { 0 };
-
-    //tex[0].id = load_texture_grf("Vehicules/Textures/car.grf", &tex[0].width, &tex[0].height);
-    /*
-    for (const auto value : data)
-    {
-        printf("Value: %u\n", value);
-    }*/
-    //data.insert((const unsigned char*)(3), 99);
-    printf("Hello, test world!\n");
-    /*data.insert((data.begin() + 3), 99);
-    for (const auto value : data)
-    {
-        printf("Value: %u\n", value);
-    }*/
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(70, 256.0 / 192.0, 0.1, 40);
-
-    gluLookAt(0.0, 0.0, 2.0,  // Position
-            0.0, 0.0, 0.0,  // Look at
-            0.0, 1.0, 0.0); // Up
-    
-    printf("Hello, test world!\n");
-    glMatrixMode(GL_MODELVIEW);
-
-    // Setup some material properties
-    glMaterialf(GL_DIFFUSE, RGB15(20, 20, 20));
-    glMaterialf(GL_AMBIENT, RGB15(16, 16, 16));
-    
-    glMaterialf(GL_SPECULAR, RGB15(8, 8, 8));
-    glMaterialf(GL_EMISSION, RGB15(5, 5, 5));
-
-    // Setup lights
-    double x_pos = 0.0;
-    double z_pos = -4.0;
-    glLight(0, RGB15(31, 31, 31), floattov10(-1), floattov10(0), floattov10(0));
-    glLight(1, RGB15(31, 31, 31), floattov10(0), floattov10(0), floattov10(-1));
     while (1)
     {
-        swiWaitForVBlank();
+        NE_WaitForVBL(NE_UPDATE_ANIMATIONS);
+        NE_ProcessArg(Draw3DScene, &Scene);
 
         scanKeys();
-        int held = keysHeld();
-        if (held & KEY_UP)
-            z_pos += 0.1;
-        if (held & KEY_DOWN)
-            z_pos -= 0.1;
-        if (held & KEY_LEFT)
-            x_pos -= 0.1;
-        if (held & KEY_RIGHT)
-            x_pos += 0.1;
-        
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        //gluLookAt(0,0,4, 0,0,0, 0,1,0);
-        gluLookAt(x_pos, 3.0, z_pos,  // Position
-                  0.0, 0.0, 0.0,  // Look at
-                  0.0, 1.0, 0.0); // Up
-        glPushMatrix();
-        glPolyFmt(
-            POLY_ALPHA(31) |
-            POLY_CULL_BACK |
-            POLY_FORMAT_LIGHT0 |
-            POLY_FORMAT_LIGHT1
-        );
-        glColor3b(0,0,0);
-        glBindTexture(0, textureID);
-        glCallList(car);
-        glPopMatrix(1);
 
-        glPushMatrix();
-        glPolyFmt(
-            POLY_ALPHA(31) |
-            POLY_CULL_BACK |
-            POLY_FORMAT_LIGHT0 |
-            POLY_FORMAT_LIGHT1
-        );
-
-        //glColor3b(0,0,0);
-        
-        glBindTexture(0, textureGridTest);
-        glCallList(gridv2_bin);
-        glPopMatrix(1);
-
-        //glPopMatrix(1);
-        glFlush(GL_ZBUFFERING);
+        // Your code goes here
     }
 
     return 0;

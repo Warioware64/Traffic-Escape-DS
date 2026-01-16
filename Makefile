@@ -17,7 +17,9 @@ AUDIODIRS	:= audio
 BINDIRS 	:= bin
 # Libraries
 
-LIBS		:= -lnds9 -lmm9
-LIBDIRS		:= $(BLOCKSDS)/libs/maxmod
+LIBS		:= -lnds9 -lmm9  -lNE
+LIBDIRS		:= $(BLOCKSDS)/libs/maxmod \
+			$(BLOCKSDSEXT)/nitro-engine
 
+CXXFLAGS	+= -fpermissive
 include $(BLOCKSDS)/sys/default_makefiles/rom_arm9/Makefile
