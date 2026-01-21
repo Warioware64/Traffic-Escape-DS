@@ -7,6 +7,14 @@
 #include <array>
 #include <string>
 
+enum class OrientationRULES : uint8_t
+{
+    LEFT_RIGHT,
+    TOP_UP
+};
+
+
+
 struct Grid2D
 {
     uint8_t x, y;
@@ -20,6 +28,7 @@ struct BasePos
 
 struct CarsStates
 {
+    uint8_t true_car;
     void *ptrMesh;
     int texGLptr;
     size_t carID;
@@ -28,14 +37,22 @@ struct CarsStates
     BasePos basepose;
     Grid2D grid2d;
 };
+
+using LevelData = std::array<CarsStates, 5>;
+
 namespace PosVehicules
 {
-    inline std::array<BasePos, 4> BasePoses = {{
+    constexpr inline std::array<BasePos, 4> BasePoses = {{
         {-1.25, 2.25, 0.5},
         {-0.75, 2.25, 0.5},
         {-1.25, 1.75, 0.5},
         {-1.25, 2.25, 0.5}
     }};
+    
+    constexpr inline std::array<OrientationRULES, 4> OrientationRULESpreset = {OrientationRULES::LEFT_RIGHT,
+                                                                             OrientationRULES::LEFT_RIGHT,
+                                                                            OrientationRULES::TOP_UP,
+                                                                            OrientationRULES::TOP_UP};
     
     inline std::array<std::string, 8> CarNames = {"Car", "Car2", "Car3", "Car4", "Car5", "Car5Police", "Car5Taxi", "Car8"};
     inline std::array<std::string, 4> OrientationNames = {"_o1.bin", "_o2.bin", "_o3.bin", "_o4.bin"};
@@ -51,6 +68,7 @@ namespace PosVehicules
     inline void LoadVehicule_Mesh(void *&ptr, size_t carID, size_t orientation)
     {
         FILE* file;
+        
         //consoleDebugInit(DebugDevice_NOCASH);
         std::string path = "/Vehicules/Meshes/" + PosVehicules::CarNames.at(carID) + PosVehicules::OrientationNames.at(orientation);
         //printf("Here is result: %s", path.c_str());

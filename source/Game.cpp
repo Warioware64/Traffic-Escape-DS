@@ -1,6 +1,7 @@
 #include "Game.hpp"
 
 #include "GridMesh.hpp"
+#include "GameLevelLoader.hpp"
 
 void Game::Init()
 {
@@ -37,20 +38,11 @@ void Game::Init()
     size_t ori = 0;
     size_t tex = 0;
 
-    cars.at(0) = {.ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
+    GameLevelLoader::LoadLevel(0);
+    //cars.at(0) = {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
 
     
-    PosVehicules::LoadVehicule_Mesh(cars.at(0).ptrMesh, cars.at(0).carID, cars.at(0).orientation);
-    PosVehicules::LoadVehicule_Texture(&cars.at(0).texGLptr, cars.at(0).tex);
 
-    mesh = 1;
-    ori = 1;
-    tex = 4;
-
-    cars.at(1) = {.ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori)};
-
-    PosVehicules::LoadVehicule_Mesh(cars.at(1).ptrMesh, cars.at(1).carID, cars.at(1).orientation);
-    PosVehicules::LoadVehicule_Texture(&cars.at(1).texGLptr, cars.at(1).tex);
     //x_test = PosVehicules::BasePoses.at(ori).x;
     //y_test = PosVehicules::BasePoses.at(ori).y;
     //z_test = PosVehicules::BasePoses.at(ori).z;
@@ -104,19 +96,22 @@ void Game::Update()
     bool change = false;
     
     if (keys & KEY_LEFT)
-        cars.at(edit_car).grid2d.x -= 1;
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+            GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
     if (keys & KEY_RIGHT)
-        cars.at(edit_car).grid2d.x += 1;
-    
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+            GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
     
     if (keys & KEY_UP)
     {
-        cars.at(edit_car).grid2d.y -= 1;
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+            GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
     }
 
     if (keys & KEY_DOWN)
     {
-        cars.at(edit_car).grid2d.y += 1;
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+            GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
     }
     
     if (keys & KEY_A)
@@ -163,7 +158,7 @@ void Game::Update()
 
     if (keys & KEY_START)
     {
-        if (cars.at(edit_car + 1).ptrMesh != nullptr)
+        if (GameLevelLoader::lev_data.at(edit_car + 1).true_car == 1)
             edit_car++;
     }
 
@@ -196,9 +191,9 @@ void Game::Update()
     
     size_t itemCount = 0;
 
-    std::for_each(cars.begin(), cars.end(), [&itemCount](const CarsStates& n){
+    std::for_each(GameLevelLoader::lev_data.begin(), GameLevelLoader::lev_data.end(), [&itemCount](const CarsStates& n){
 
-        if (n.ptrMesh != nullptr)
+        if (n.true_car != 0)
         {
             glPushMatrix();
             glTranslatef(n.basepose.x + (n.grid2d.x * 0.5), n.basepose.y + (n.grid2d.y * -0.5), n.basepose.z);

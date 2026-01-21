@@ -20,7 +20,7 @@ namespace Game
     inline void *grid;
 
     inline int edit_car;
-    inline std::array<CarsStates, 5> cars;
+    inline LevelData cars;
 
     void Init();
     void Update();
