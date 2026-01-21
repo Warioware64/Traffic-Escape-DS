@@ -1,6 +1,9 @@
 #pragma once
 #include <nds.h>
 #include <filesystem.h>
+#include <array>
+#include <algorithm>
+#include "PosVehicules.hpp"
 
 namespace Game
 {
@@ -15,6 +18,9 @@ namespace Game
     
     inline void *car;
     inline void *grid;
+
+    inline int edit_car;
+    inline std::array<CarsStates, 5> cars;
 
     void Init();
     void Update();

@@ -1,26 +1,30 @@
 #include "Game.hpp"
-#include "PosVehicules.hpp"
+
 #include "GridMesh.hpp"
 
 void Game::Init()
 {
-    x_test = -1.25;
-    y_test = -0.25;
-    z_test = 0.5;
+
 
     idMesh = 0;
     idOrient = 0;
     idTex = 0;
+
+    edit_car = 0;
     //FILE* file;
 
     nitroFSInit(NULL);
 
     videoSetMode(MODE_0_3D);
+    lcdMainOnBottom();
     
     glInit();
 
     glEnable(GL_TEXTURE_2D);
     glEnable(GL_ANTIALIAS);
+    glEnable(GL_OUTLINE);
+
+    glSetOutlineColor(0, RGB15(31, 0, 0));
 
     vramSetBankA(VRAM_A_TEXTURE);
     vramSetBankF(VRAM_F_TEX_PALETTE);
@@ -29,8 +33,27 @@ void Game::Init()
     // alpha blending works.
     GridMesh::LoadGridMesh(&grid);
 
-    PosVehicules::LoadVehicule_Mesh(&car, 0, 0);
-    PosVehicules::LoadVehicule_Texture(&textureID, 0);
+    size_t mesh = 0;
+    size_t ori = 0;
+    size_t tex = 0;
+
+    cars.at(0) = {.ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
+
+    
+    PosVehicules::LoadVehicule_Mesh(cars.at(0).ptrMesh, cars.at(0).carID, cars.at(0).orientation);
+    PosVehicules::LoadVehicule_Texture(&cars.at(0).texGLptr, cars.at(0).tex);
+
+    mesh = 1;
+    ori = 1;
+    tex = 4;
+
+    cars.at(1) = {.ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori)};
+
+    PosVehicules::LoadVehicule_Mesh(cars.at(1).ptrMesh, cars.at(1).carID, cars.at(1).orientation);
+    PosVehicules::LoadVehicule_Texture(&cars.at(1).texGLptr, cars.at(1).tex);
+    //x_test = PosVehicules::BasePoses.at(ori).x;
+    //y_test = PosVehicules::BasePoses.at(ori).y;
+    //z_test = PosVehicules::BasePoses.at(ori).z;
     /*
     glGenTextures(1, &textureID);
 
@@ -42,7 +65,8 @@ void Game::Init()
     glColorTableEXT(0, 0, 256, 0, 0, car_pal_bin);*/
 
     glClearColor(0, 0, 0, 31);
-    glClearPolyID(63);
+    glClearPolyID(0);
+    //glClearPolyID(63);
 
     glClearDepth(0x7FFF);
 
@@ -78,21 +102,21 @@ void Game::Update()
     scanKeys();
     uint16_t keys = keysUp();
     bool change = false;
-
+    
     if (keys & KEY_LEFT)
-        x_test -= 0.5;
+        cars.at(edit_car).grid2d.x -= 1;
     if (keys & KEY_RIGHT)
-        x_test += 0.5;
+        cars.at(edit_car).grid2d.x += 1;
     
     
     if (keys & KEY_UP)
     {
-        y_test += 0.5;
+        cars.at(edit_car).grid2d.y -= 1;
     }
 
     if (keys & KEY_DOWN)
     {
-        y_test -= 0.5;
+        cars.at(edit_car).grid2d.y += 1;
     }
     
     if (keys & KEY_A)
@@ -137,12 +161,25 @@ void Game::Update()
         change = true;
     }
 
+    if (keys & KEY_START)
+    {
+        if (cars.at(edit_car + 1).ptrMesh != nullptr)
+            edit_car++;
+    }
+
+    if (keys & KEY_SELECT)
+    {
+        if (edit_car != 0)
+            edit_car--;
+    }
     if (change)
     {
         glDeleteTextures(1, &textureID);
-        PosVehicules::LoadVehicule_Mesh(&car, idMesh, idOrient);
+        PosVehicules::LoadVehicule_Mesh(car, idMesh, idOrient);
         PosVehicules::LoadVehicule_Texture(&textureID, idTex);
-        
+        x_test = PosVehicules::BasePoses.at(idOrient).x;
+        y_test = PosVehicules::BasePoses.at(idOrient).y;
+        z_test = PosVehicules::BasePoses.at(idOrient).z;
     }
     //glPolyFmt(POLY_ALPHA(31) | POLY_CULL_BACK | POLY_FORMAT_LIGHT0);
 
@@ -151,27 +188,45 @@ void Game::Update()
     glTranslatef(-1.25, -0.25, 0.5);
     glRotateX(85);
     glScalef32(floattof32(0.5), floattof32(0.5), floattof32(0.5));
-    glPolyFmt(POLY_ALPHA(31) | POLY_ID(1) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT1);
+    glPolyFmt(POLY_ALPHA(31) | POLY_ID(0) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT1);
     glBindTexture(0, 0);
     glCallList(grid);
 
     glPopMatrix(1);
     
+    size_t itemCount = 0;
+
+    std::for_each(cars.begin(), cars.end(), [&itemCount](const CarsStates& n){
+
+        if (n.ptrMesh != nullptr)
+        {
+            glPushMatrix();
+            glTranslatef(n.basepose.x + (n.grid2d.x * 0.5), n.basepose.y + (n.grid2d.y * -0.5), n.basepose.z);
+            glRotateX(85);
+
+            glScalef32(floattof32(0.5), floattof32(0.5), floattof32(0.5));
+            if (itemCount == edit_car)
+            {
+                glPolyFmt(POLY_ALPHA(31) | POLY_ID(1) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT0);
+            }
+            else
+            {
+                glPolyFmt(POLY_ALPHA(31) | POLY_ID(0) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT0);
+            }
+            
+
+            glBindTexture(0, n.texGLptr);
+            glCallList(n.ptrMesh);
+
+            glPopMatrix(1);
+
+        }
+
+        itemCount++;
+    });
+    
 
 
-
-    glPushMatrix();
-    glTranslatef(x_test, y_test, z_test);
-    glRotateX(85);
-
-    glScalef32(floattof32(0.5), floattof32(0.5), floattof32(0.5));
-
-    glPolyFmt(POLY_ALPHA(31) | POLY_ID(2) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT0);
-
-    glBindTexture(0, textureID);
-    glCallList(car);
-
-    glPopMatrix(1);
     
     glFlush(0);
     swiWaitForVBlank();

@@ -7,8 +7,36 @@
 #include <array>
 #include <string>
 
+struct Grid2D
+{
+    uint8_t x, y;
+};
+
+
+struct BasePos
+{
+    float x, y, z;
+};
+
+struct CarsStates
+{
+    void *ptrMesh;
+    int texGLptr;
+    size_t carID;
+    size_t orientation;
+    size_t tex;
+    BasePos basepose;
+    Grid2D grid2d;
+};
 namespace PosVehicules
 {
+    inline std::array<BasePos, 4> BasePoses = {{
+        {-1.25, 2.25, 0.5},
+        {-0.75, 2.25, 0.5},
+        {-1.25, 1.75, 0.5},
+        {-1.25, 2.25, 0.5}
+    }};
+    
     inline std::array<std::string, 8> CarNames = {"Car", "Car2", "Car3", "Car4", "Car5", "Car5Police", "Car5Taxi", "Car8"};
     inline std::array<std::string, 4> OrientationNames = {"_o1.bin", "_o2.bin", "_o3.bin", "_o4.bin"};
     inline std::array<std::string, 24> TextureNames = {"car", "car_blue", "car_gray", "car_red"
@@ -20,7 +48,7 @@ namespace PosVehicules
 
     
 
-    void LoadVehicule_Mesh(void **ptr, size_t carID, size_t orientation)
+    inline void LoadVehicule_Mesh(void *&ptr, size_t carID, size_t orientation)
     {
         FILE* file;
         //consoleDebugInit(DebugDevice_NOCASH);
@@ -30,10 +58,10 @@ namespace PosVehicules
         fseek(file, 0, SEEK_END);
 
         size_t size_bytes_meshes = ftell(file);
-        *ptr = malloc(size_bytes_meshes);
+        ptr = malloc(size_bytes_meshes);
         rewind(file);
 
-        fread(*ptr, sizeof(uint8_t), size_bytes_meshes, file);
+        fread(ptr, sizeof(uint8_t), size_bytes_meshes, file);
 
         fclose(file);
 
@@ -41,7 +69,7 @@ namespace PosVehicules
 
     };
     
-    void LoadVehicule_Texture(int *texGLptr, size_t textureID)
+    inline void LoadVehicule_Texture(int *texGLptr, size_t textureID)
     {
         FILE* file;
 
@@ -96,7 +124,7 @@ namespace PosVehicules
 
 
     };
-    int Orientation(uint8_t ori)
+    inline int Orientation(uint8_t ori)
     {
         switch(ori)
         {
@@ -117,3 +145,4 @@ namespace PosVehicules
         }
     };
 }
+
