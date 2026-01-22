@@ -2,20 +2,24 @@
 #include "GameLevels.hpp"
 
 
-inline int conditional_temp_grid(const CarsStates& car, const CarsStates& exclude, int minus)
+inline bool carOccupiesCell(const CarsStates& car, Grid2D cell)
 {
-    if (minus == 2)
+    // First cell the car occupies
+    if (car.grid2d == cell)
+        return true;
+
+    // Second cell depends on orientation
+    if (PosVehicules::OrientationRULESpreset.at(car.orientation) == OrientationRULES::LEFT_RIGHT)
     {
-        return 0;
-    }
-    
-    if (PosVehicules::OrientationRULESpreset.at(car.orientation) == PosVehicules::OrientationRULESpreset.at(exclude.orientation))
-    {
-        return minus;
+        // Car extends to the right: also occupies (x+1, y)
+        Grid2D secondCell = {.x = static_cast<uint8_t>(car.grid2d.x + 1), .y = car.grid2d.y};
+        return secondCell == cell;
     }
     else
     {
-        return 0;
+        // Car extends downward: also occupies (x, y+1)
+        Grid2D secondCell = {.x = car.grid2d.x, .y = static_cast<uint8_t>(car.grid2d.y + 1)};
+        return secondCell == cell;
     }
 }
 
@@ -34,24 +38,32 @@ void GameLevelLoader::LoadLevel(int level)
     });
 }
 
-bool GameLevelLoader::CollisionCheck(Grid2D grid2d, size_t excludeIndex, int operator_sign)
+bool GameLevelLoader::CollisionCheck(Grid2D grid2d, size_t excludeIndex)
 {
-    size_t i = 0;
-    int x_minus = 0;
-    int y_minus = 0;
-    if (PosVehicules::OrientationRULESpreset.at(lev_data.at(excludeIndex).orientation) == OrientationRULES::LEFT_RIGHT)
+    
+
+    const CarsStates& movingCar = lev_data.at(excludeIndex);
+
+    // Get both cells the moving car will occupy at the new position
+    Grid2D cell1 = grid2d;
+    Grid2D cell2;
+    if (PosVehicules::OrientationRULESpreset.at(movingCar.orientation) == OrientationRULES::LEFT_RIGHT)
     {
-        x_minus = operator_sign;
+        cell2 = {.x = static_cast<uint8_t>(grid2d.x + 1), .y = grid2d.y};
     }
     else
     {
-        y_minus = operator_sign;
+        cell2 = {.x = grid2d.x, .y = static_cast<uint8_t>(grid2d.y + 1)};
     }
 
+    size_t i = 0;
     auto it = std::find_if(lev_data.begin(), lev_data.end(), [&](const CarsStates& car){
         size_t currentIndex = i++;
-        Grid2D temp_grid = {.x = car.grid2d.x + conditional_temp_grid(car, lev_data.at(excludeIndex), x_minus), .y = car.grid2d.y + conditional_temp_grid(car, lev_data.at(excludeIndex), y_minus)};
-        return currentIndex != excludeIndex && car.true_car != 0 && temp_grid == grid2d;
+        if (currentIndex == excludeIndex || car.true_car == 0)
+            return false;
+
+        // Check if either cell of the moving car collides with any cell of this car
+        return carOccupiesCell(car, cell1) || carOccupiesCell(car, cell2);
     });
 
     return it != lev_data.end();

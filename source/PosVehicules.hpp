@@ -44,7 +44,7 @@ struct CarsStates
     Grid2D grid2d;
 };
 
-using LevelData = std::array<CarsStates, 5>;
+using LevelData = std::array<CarsStates, 16>;
 
 namespace PosVehicules
 {

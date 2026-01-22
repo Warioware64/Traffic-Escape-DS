@@ -100,7 +100,7 @@ void Game::Update()
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, 1))
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
             }
@@ -112,7 +112,7 @@ void Game::Update()
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.x <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, -1))
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
             }
@@ -124,7 +124,7 @@ void Game::Update()
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, 1))
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
             }
@@ -136,7 +136,7 @@ void Game::Update()
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.y <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, -1))
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
             }
