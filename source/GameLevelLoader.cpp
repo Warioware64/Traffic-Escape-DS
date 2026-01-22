@@ -4,6 +4,11 @@
 
 inline int conditional_temp_grid(const CarsStates& car, const CarsStates& exclude, int minus)
 {
+    if (minus == 2)
+    {
+        return 0;
+    }
+    
     if (PosVehicules::OrientationRULESpreset.at(car.orientation) == PosVehicules::OrientationRULESpreset.at(exclude.orientation))
     {
         return minus;

@@ -170,7 +170,7 @@ void Game::Update()
             idOrient--;
         change = true;
     }
-
+    /*
     if (keys & KEY_R)
     {
         if (idTex != PosVehicules::TextureNames.size())
@@ -183,15 +183,18 @@ void Game::Update()
         if (idTex != 0)
             idTex--;
         change = true;
-    }
+    }*/
 
-    if (keys & KEY_START)
+    if (keys & KEY_L)
     {
-        if (GameLevelLoader::lev_data.at(edit_car + 1).true_car == 1)
-            edit_car++;
+        edit_car++;
+        if (GameLevelLoader::lev_data.at(edit_car).true_car == 0)
+        {
+            edit_car = 0;
+        }
     }
 
-    if (keys & KEY_SELECT)
+    if (keys & KEY_R)
     {
         if (edit_car != 0)
             edit_car--;
