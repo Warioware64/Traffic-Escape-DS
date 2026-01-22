@@ -96,22 +96,51 @@ void Game::Update()
     bool change = false;
     
     if (keys & KEY_LEFT)
+    {
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+        {
             GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, 1))
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+            }
+        }
+    }
+
     if (keys & KEY_RIGHT)
+    {
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.x <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+        {
             GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, -1))
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+            }
+        }
+    }
     
     if (keys & KEY_UP)
     {
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+        {
             GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, 1))
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+            }
+        }
     }
 
     if (keys & KEY_DOWN)
     {
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.y <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+        {
             GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car, -1))
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+            }
+        }
     }
     
     if (keys & KEY_A)

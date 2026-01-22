@@ -3,6 +3,7 @@
 #include <nds.h>
 #include <filesystem.h>
 
+#include <algorithm>
 #include <stdio.h>
 #include <array>
 #include <string>
@@ -18,6 +19,11 @@ enum class OrientationRULES : uint8_t
 struct Grid2D
 {
     uint8_t x, y;
+
+    bool operator==(const Grid2D& other) const
+    {
+        return x == other.x && y == other.y;
+    }
 };
 
 
@@ -141,26 +147,6 @@ namespace PosVehicules
         free(TexPtr);
 
 
-    };
-    inline int Orientation(uint8_t ori)
-    {
-        switch(ori)
-        {
-            case 0:
-                break;
-            
-            case 1:
-                break;
-
-            case 2:
-                break;
-
-            case 3:
-                break;
-            
-            default:
-                break;
-        }
     };
 }
 

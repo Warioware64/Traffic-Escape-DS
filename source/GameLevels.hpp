@@ -4,9 +4,9 @@
 
 
 constexpr LevelData level = {{
-        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 0, .orientation = 1, .tex = 0, .basepose = NULL, .grid2d = {0, 0}},
-        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 0, .orientation = 0, .tex = 0, .basepose = NULL, .grid2d = {0, 0}},
-        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 0, .orientation = 0, .tex = 0, .basepose = NULL, .grid2d = {0, 0}},
+        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 0, .orientation = 2, .tex = 0, .basepose = NULL, .grid2d = {0, 0}},
+        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 1, .orientation = 0, .tex = 4, .basepose = NULL, .grid2d = {3, 0}},
+        {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = 1, .orientation = 0, .tex = 5, .basepose = NULL, .grid2d = {0, 2}},
     }};
 
 constexpr LevelData cars2;
