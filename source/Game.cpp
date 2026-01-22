@@ -3,6 +3,196 @@
 #include "GridMesh.hpp"
 #include "GameLevelLoader.hpp"
 
+// Screen bounds for the grid (trapezoid shape due to perspective)
+// Top edge of grid (further from camera, appears narrower)
+constexpr int GRID_TOP_LEFT = 90;
+constexpr int GRID_TOP_RIGHT = 195;
+constexpr int GRID_SCREEN_TOP = 75;
+
+// Bottom edge of grid (closer to camera, appears wider)
+constexpr int GRID_BOTTOM_LEFT = 70;
+constexpr int GRID_BOTTOM_RIGHT = 216;
+constexpr int GRID_SCREEN_BOTTOM = 130;
+
+// Minimum drag distance to trigger movement (in pixels)
+constexpr int DRAG_THRESHOLD = 20;
+
+Grid2D Game::ScreenToGrid(int px, int py)
+{
+    // Clamp Y to grid bounds
+    if (py < GRID_SCREEN_TOP) py = GRID_SCREEN_TOP;
+    if (py > GRID_SCREEN_BOTTOM) py = GRID_SCREEN_BOTTOM;
+
+    // Calculate Y position as ratio (0.0 = top, 1.0 = bottom)
+    float yRatio = static_cast<float>(py - GRID_SCREEN_TOP) / (GRID_SCREEN_BOTTOM - GRID_SCREEN_TOP);
+
+    // Interpolate left and right bounds based on Y position (trapezoid)
+    int leftBound = GRID_TOP_LEFT + static_cast<int>(yRatio * (GRID_BOTTOM_LEFT - GRID_TOP_LEFT));
+    int rightBound = GRID_TOP_RIGHT + static_cast<int>(yRatio * (GRID_BOTTOM_RIGHT - GRID_TOP_RIGHT));
+
+    // Clamp X to interpolated bounds
+    if (px < leftBound) px = leftBound;
+    if (px > rightBound) px = rightBound;
+
+    // Map to grid coordinates (0-5)
+    int gridX = (px - leftBound) * 6 / (rightBound - leftBound);
+    // Add 1 to compensate for perspective (touch registers one row higher than visual)
+    int gridY = static_cast<int>(yRatio * 6) + 1;
+
+    // Clamp to valid grid range
+    if (gridX < 0) gridX = 0;
+    if (gridX > 5) gridX = 5;
+    if (gridY < 0) gridY = 0;
+    if (gridY > 5) gridY = 5;
+
+    return {static_cast<uint8_t>(gridX), static_cast<uint8_t>(gridY)};
+}
+
+int Game::FindCarAtGrid(Grid2D grid)
+{
+    for (size_t i = 0; i < GameLevelLoader::lev_data.size(); i++)
+    {
+        const CarsStates& car = GameLevelLoader::lev_data.at(i);
+        if (car.true_car == 0)
+            continue;
+
+        // Check if this grid position is occupied by this car
+        // Car occupies its base position
+        if (car.grid2d == grid)
+            return static_cast<int>(i);
+
+        // Car also occupies a second cell based on orientation
+        if (PosVehicules::OrientationRULESpreset.at(car.orientation) == OrientationRULES::LEFT_RIGHT)
+        {
+            // Car extends to the right
+            Grid2D secondCell = {static_cast<uint8_t>(car.grid2d.x + 1), car.grid2d.y};
+            if (secondCell == grid)
+                return static_cast<int>(i);
+        }
+        else
+        {
+            // Car extends downward
+            Grid2D secondCell = {car.grid2d.x, static_cast<uint8_t>(car.grid2d.y + 1)};
+            if (secondCell == grid)
+                return static_cast<int>(i);
+        }
+    }
+    return -1; // No car found
+}
+
+void Game::HandleTouch()
+{
+    uint16_t keysD = keysDown();
+    uint16_t keysH = keysHeld();
+    uint16_t keysU = keysUp();
+
+    touchPosition touch;
+    touchRead(&touch);
+
+    // Touch started
+    if (keysD & KEY_TOUCH)
+    {
+        touch_start_x = touch.px;
+        touch_start_y = touch.py;
+        touch_last_x = touch.px;
+        touch_last_y = touch.py;
+        touch_dragging = false;
+
+        // Find which car was touched
+        Grid2D touchedGrid = ScreenToGrid(touch.px, touch.py);
+        touch_selected_car = FindCarAtGrid(touchedGrid);
+
+        // Update edit_car to show selection highlight
+        if (touch_selected_car >= 0)
+        {
+            edit_car = touch_selected_car;
+        }
+    }
+
+    // Touch held - check for drag movement
+    if ((keysH & KEY_TOUCH) && touch_selected_car >= 0)
+    {
+        int deltaX = touch.px - touch_last_x;
+        int deltaY = touch.py - touch_last_y;
+
+        CarsStates& car = GameLevelLoader::lev_data.at(touch_selected_car);
+        OrientationRULES carOrientation = PosVehicules::OrientationRULESpreset.at(car.orientation);
+
+        // Check if drag exceeds threshold
+        if (carOrientation == OrientationRULES::LEFT_RIGHT)
+        {
+            // Horizontal movement only
+            if (deltaX > DRAG_THRESHOLD && car.grid2d.x <= 3)
+            {
+                // Drag right
+                car.grid2d.x += 1;
+                if (GameLevelLoader::CollisionCheck(car.grid2d, touch_selected_car))
+                {
+                    car.grid2d.x -= 1;
+                }
+                else
+                {
+                    touch_last_x = touch.px;
+                    touch_last_y = touch.py;
+                }
+            }
+            else if (deltaX < -DRAG_THRESHOLD && car.grid2d.x >= 1)
+            {
+                // Drag left
+                car.grid2d.x -= 1;
+                if (GameLevelLoader::CollisionCheck(car.grid2d, touch_selected_car))
+                {
+                    car.grid2d.x += 1;
+                }
+                else
+                {
+                    touch_last_x = touch.px;
+                    touch_last_y = touch.py;
+                }
+            }
+        }
+        else
+        {
+            // Vertical movement only (TOP_UP)
+            if (deltaY > DRAG_THRESHOLD && car.grid2d.y <= 3)
+            {
+                // Drag down (increases Y in grid, which moves car down on screen)
+                car.grid2d.y += 1;
+                if (GameLevelLoader::CollisionCheck(car.grid2d, touch_selected_car))
+                {
+                    car.grid2d.y -= 1;
+                }
+                else
+                {
+                    touch_last_x = touch.px;
+                    touch_last_y = touch.py;
+                }
+            }
+            else if (deltaY < -DRAG_THRESHOLD && car.grid2d.y >= 1)
+            {
+                // Drag up (decreases Y in grid, which moves car up on screen)
+                car.grid2d.y -= 1;
+                if (GameLevelLoader::CollisionCheck(car.grid2d, touch_selected_car))
+                {
+                    car.grid2d.y += 1;
+                }
+                else
+                {
+                    touch_last_x = touch.px;
+                    touch_last_y = touch.py;
+                }
+            }
+        }
+    }
+
+    // Touch released
+    if (keysU & KEY_TOUCH)
+    {
+        touch_selected_car = -1;
+        touch_dragging = false;
+    }
+}
+
 void Game::Init()
 {
 
@@ -94,6 +284,7 @@ void Game::Update()
     scanKeys();
     uint16_t keys = keysUp();
     bool change = false;
+    Game::HandleTouch();
     
     if (keys & KEY_LEFT)
     {
