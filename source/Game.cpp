@@ -7,15 +7,76 @@
 // Top edge of grid (further from camera, appears narrower)
 constexpr int GRID_TOP_LEFT = 90;
 constexpr int GRID_TOP_RIGHT = 195;
-constexpr int GRID_SCREEN_TOP = 75;
+constexpr int GRID_SCREEN_TOP = 40;
 
 // Bottom edge of grid (closer to camera, appears wider)
-constexpr int GRID_BOTTOM_LEFT = 70;
+constexpr int GRID_BOTTOM_LEFT = 40;
 constexpr int GRID_BOTTOM_RIGHT = 216;
-constexpr int GRID_SCREEN_BOTTOM = 130;
+constexpr int GRID_SCREEN_BOTTOM = 150;
 
 // Minimum drag distance to trigger movement (in pixels)
 constexpr int DRAG_THRESHOLD = 20;
+
+// Enable/disable debug overlay
+constexpr bool DEBUG_DRAW_TOUCH_ZONE = true;
+
+// Convert screen pixel X (0-255) to GL coordinate (-1 to 1)
+inline float screenToGLX(int px) {
+    return (px / 128.0f) - 1.0f;
+}
+
+// Convert screen pixel Y (0-191) to GL coordinate (1 to -1, Y is flipped)
+inline float screenToGLY(int py) {
+    return 1.0f - (py / 96.0f);
+}
+
+void Game::DrawDebugTouchZone()
+{
+    if (!DEBUG_DRAW_TOUCH_ZONE) return;
+
+    // Use the same base position as the grid board
+    BasePos basepos = {-1.25f, 2.25f, 0.5f};
+
+    // Draw small markers at each grid cell center in 3D space
+    // Using the same transformation as cars
+    for (int gridY = 0; gridY < 6; gridY++)
+    {
+        for (int gridX = 0; gridX < 6; gridX++)
+        {
+            glPushMatrix();
+
+            // Same transform as cars: basepose + (grid2d.x * 0.5, grid2d.y * -0.5, z)
+            glTranslatef(basepos.x + (gridX * 0.5f) + 0.25f,  // +0.25 to center in cell
+                        basepos.y + (gridY * -0.5f) - 0.25f, // -0.25 to center in cell
+                        basepos.z + 0.1f);  // Slightly above grid
+            glRotateX(85);
+            glScalef32(floattof32(0.1f), floattof32(0.1f), floattof32(0.1f));
+
+            // Color based on grid position for easy identification
+            // Corners are bright, center is dim
+            int r = (gridX == 0 || gridX == 5) ? 255 : 100;
+            int g = (gridY == 0 || gridY == 5) ? 255 : 100;
+            int b = ((gridX + gridY) % 2 == 0) ? 255 : 50;
+            glColor3b(r, g, b);
+
+            glPolyFmt(POLY_ALPHA(25) | POLY_ID(60) | POLY_CULL_NONE);
+            glBindTexture(0, 0);
+
+            // Draw a small quad marker
+            glBegin(GL_QUADS);
+                glVertex3f(-1, -1, 0);
+                glVertex3f( 1, -1, 0);
+                glVertex3f( 1,  1, 0);
+                glVertex3f(-1,  1, 0);
+            glEnd();
+
+            glPopMatrix(1);
+        }
+    }
+
+    // Reset color
+    glColor3b(255, 255, 255);
+}
 
 Grid2D Game::ScreenToGrid(int px, int py)
 {
@@ -27,29 +88,35 @@ Grid2D Game::ScreenToGrid(int px, int py)
     float yRatio = static_cast<float>(py - GRID_SCREEN_TOP) / (GRID_SCREEN_BOTTOM - GRID_SCREEN_TOP);
 
     // Interpolate left and right bounds based on Y position (trapezoid)
-    int leftBound = GRID_TOP_LEFT + static_cast<int>(yRatio * (GRID_BOTTOM_LEFT - GRID_TOP_LEFT));
-    int rightBound = GRID_TOP_RIGHT + static_cast<int>(yRatio * (GRID_BOTTOM_RIGHT - GRID_TOP_RIGHT));
-
+    float leftBound = static_cast<float>(GRID_TOP_LEFT) + (yRatio * (GRID_BOTTOM_LEFT - GRID_TOP_LEFT));
+    float rightBound = static_cast<float>(GRID_TOP_RIGHT) + (yRatio * (GRID_BOTTOM_RIGHT - GRID_TOP_RIGHT));
+    /*
+    std::cout << "leftBound : " << leftBound << std::endl;
+    std::cout << "rightBound : " << rightBound << std::endl;
+    std::cout << "yRatio : " << yRatio << std::endl;
+    */
     // Clamp X to interpolated bounds
     if (px < leftBound) px = leftBound;
     if (px > rightBound) px = rightBound;
 
     // Map to grid coordinates (0-5)
-    int gridX = (px - leftBound) * 6 / (rightBound - leftBound);
+    int gridX = static_cast<int>((px - leftBound) * 6 / (rightBound - leftBound) + 0.5);
     // Add 1 to compensate for perspective (touch registers one row higher than visual)
-    int gridY = static_cast<int>(yRatio * 6) + 1;
-
+    int gridY = static_cast<int>((yRatio * 6) + 0.5);
+    
     // Clamp to valid grid range
     if (gridX < 0) gridX = 0;
     if (gridX > 5) gridX = 5;
     if (gridY < 0) gridY = 0;
     if (gridY > 5) gridY = 5;
-
+    
+    //std::cout << "gridX : " << gridX << " gridY : " << gridY << std::endl;
     return {static_cast<uint8_t>(gridX), static_cast<uint8_t>(gridY)};
 }
 
 int Game::FindCarAtGrid(Grid2D grid)
 {
+    
     for (size_t i = 0; i < GameLevelLoader::lev_data.size(); i++)
     {
         const CarsStates& car = GameLevelLoader::lev_data.at(i);
@@ -61,6 +128,7 @@ int Game::FindCarAtGrid(Grid2D grid)
         if (car.grid2d == grid)
             return static_cast<int>(i);
 
+        
         // Car also occupies a second cell based on orientation
         if (PosVehicules::OrientationRULESpreset.at(car.orientation) == OrientationRULES::LEFT_RIGHT)
         {
@@ -76,6 +144,7 @@ int Game::FindCarAtGrid(Grid2D grid)
             if (secondCell == grid)
                 return static_cast<int>(i);
         }
+        
     }
     return -1; // No car found
 }
@@ -88,6 +157,19 @@ void Game::HandleTouch()
 
     touchPosition touch;
     touchRead(&touch);
+
+    // Debug: print touch position and calculated grid (remove after calibration)
+    /*if (keysH & KEY_TOUCH)
+    {*/
+    Grid2D debugGrid = ScreenToGrid(touch.px, touch.py);
+    int foundCar = FindCarAtGrid(debugGrid);
+    
+    /*
+    printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
+            touch.px, touch.py, debugGrid.x, debugGrid.y, foundCar);
+    */
+    
+    //}
 
     // Touch started
     if (keysD & KEY_TOUCH)
@@ -102,6 +184,9 @@ void Game::HandleTouch()
         Grid2D touchedGrid = ScreenToGrid(touch.px, touch.py);
         touch_selected_car = FindCarAtGrid(touchedGrid);
 
+        printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
+            touch.px, touch.py, touchedGrid.x, touchedGrid.y, touch_selected_car);
+            
         // Update edit_car to show selection highlight
         if (touch_selected_car >= 0)
         {
@@ -118,6 +203,9 @@ void Game::HandleTouch()
         CarsStates& car = GameLevelLoader::lev_data.at(touch_selected_car);
         OrientationRULES carOrientation = PosVehicules::OrientationRULESpreset.at(car.orientation);
 
+        printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
+            touch.px, touch.py, car.grid2d.x, car.grid2d.y, touch_selected_car);
+        
         // Check if drag exceeds threshold
         if (carOrientation == OrientationRULES::LEFT_RIGHT)
         {
@@ -195,7 +283,8 @@ void Game::HandleTouch()
 
 void Game::Init()
 {
-
+    // Enable top screen console for debug output
+    consoleDemoInit();
 
     idMesh = 0;
     idOrient = 0;
@@ -282,6 +371,7 @@ void Game::Init()
 void Game::Update()
 {
     scanKeys();
+    //consoleClear();
     uint16_t keys = keysUp();
     bool change = false;
     Game::HandleTouch();
@@ -412,6 +502,7 @@ void Game::Update()
 
     glPopMatrix(1);
     
+   
     size_t itemCount = 0;
 
     std::for_each(GameLevelLoader::lev_data.begin(), GameLevelLoader::lev_data.end(), [&itemCount](const CarsStates& n){
@@ -442,9 +533,19 @@ void Game::Update()
 
         itemCount++;
     });
-    
 
-
+    // Draw debug overlay showing touch zones
+    //DrawDebugTouchZone();
+    /*
+    printf("getHeapStart : %d \n", getHeapStart());
+    printf("getHeapLimit : %d \n", getHeapLimit());
+    printf("getHeapEnd : %d \n", getHeapEnd());
+    */
+    /*
+    std::cout << "getHeapStart : "<< (const char)getHeapStart() << std::endl;
+    std::cout << "getHeapLimit : " << (const char)getHeapLimit() << std::endl;
+    std::cout << "getHeapEnd : " << (const char)getHeapEnd() << std::endl;
+    */
     
     glFlush(0);
     swiWaitForVBlank();

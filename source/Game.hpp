@@ -1,7 +1,9 @@
 #pragma once
 #include <nds.h>
+#include <iostream>
 #include <filesystem.h>
 #include <array>
+#include <vector>
 #include <algorithm>
 #include "PosVehicules.hpp"
 
@@ -34,6 +36,7 @@ namespace Game
     Grid2D ScreenToGrid(int px, int py);
     int FindCarAtGrid(Grid2D grid);
     void HandleTouch();
+    void DrawDebugTouchZone();
 
     void Init();
     void Update();
