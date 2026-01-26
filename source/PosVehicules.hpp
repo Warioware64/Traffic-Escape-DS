@@ -61,6 +61,14 @@ namespace PosVehicules
                                                                             OrientationRULES::TOP_UP};
     
     inline std::array<std::string, 8> CarNames = {"Car", "Car2", "Car3", "Car4", "Car5", "Car5Police", "Car5Taxi", "Car8"};
+
+    // Car sizes: Car4 (index 3) and Car8 (index 7) are 3 cells, others are 2
+    constexpr inline std::array<uint8_t, 8> CarSizes = {2, 2, 2, 3, 2, 2, 2, 3};
+
+    inline uint8_t GetCarSize(size_t carID)
+    {
+        return (carID < CarSizes.size()) ? CarSizes[carID] : 2;
+    }
     inline std::array<std::string, 4> OrientationNames = {"_o1.bin", "_o2.bin", "_o3.bin", "_o4.bin"};
     inline std::array<std::string, 24> TextureNames = {"car", "car_blue", "car_gray", "car_red"
                                                         , "car2", "car2_black", "car2_red", "car3", "car3_red"

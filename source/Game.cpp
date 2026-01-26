@@ -30,6 +30,17 @@ inline float screenToGLY(int py) {
     return 1.0f - (py / 96.0f);
 }
 
+inline float Conditional_x_touch_grid_first(int touch_x)
+{
+    if (touch_x > 80)
+    {
+        return 0.5;
+    }
+    else
+    {
+        return 0.0;
+    }
+}
 void Game::DrawDebugTouchZone()
 {
     if (!DEBUG_DRAW_TOUCH_ZONE) return;
@@ -100,7 +111,8 @@ Grid2D Game::ScreenToGrid(int px, int py)
     if (px > rightBound) px = rightBound;
 
     // Map to grid coordinates (0-5)
-    int gridX = static_cast<int>((px - leftBound) * 6 / (rightBound - leftBound) + 0.5);
+
+    int gridX = static_cast<int>((px - leftBound) * 6 / (rightBound - leftBound) + Conditional_x_touch_grid_first(px));
     // Add 1 to compensate for perspective (touch registers one row higher than visual)
     int gridY = static_cast<int>((yRatio * 6) + 0.5);
     
@@ -116,7 +128,6 @@ Grid2D Game::ScreenToGrid(int px, int py)
 
 int Game::FindCarAtGrid(Grid2D grid)
 {
-    
     for (size_t i = 0; i < GameLevelLoader::lev_data.size(); i++)
     {
         const CarsStates& car = GameLevelLoader::lev_data.at(i);
@@ -128,14 +139,24 @@ int Game::FindCarAtGrid(Grid2D grid)
         if (car.grid2d == grid)
             return static_cast<int>(i);
 
-        
+        bool isHorizontal = (PosVehicules::OrientationRULESpreset.at(car.orientation) == OrientationRULES::LEFT_RIGHT);
+        bool is3Cell = (PosVehicules::GetCarSize(car.carID) == 3);
+
         // Car also occupies a second cell based on orientation
-        if (PosVehicules::OrientationRULESpreset.at(car.orientation) == OrientationRULES::LEFT_RIGHT)
+        if (isHorizontal)
         {
             // Car extends to the right
             Grid2D secondCell = {static_cast<uint8_t>(car.grid2d.x + 1), car.grid2d.y};
             if (secondCell == grid)
                 return static_cast<int>(i);
+
+            // Third cell for 3-cell cars
+            if (is3Cell)
+            {
+                Grid2D thirdCell = {static_cast<uint8_t>(car.grid2d.x + 2), car.grid2d.y};
+                if (thirdCell == grid)
+                    return static_cast<int>(i);
+            }
         }
         else
         {
@@ -143,8 +164,15 @@ int Game::FindCarAtGrid(Grid2D grid)
             Grid2D secondCell = {car.grid2d.x, static_cast<uint8_t>(car.grid2d.y + 1)};
             if (secondCell == grid)
                 return static_cast<int>(i);
+
+            // Third cell for 3-cell cars
+            if (is3Cell)
+            {
+                Grid2D thirdCell = {car.grid2d.x, static_cast<uint8_t>(car.grid2d.y + 2)};
+                if (thirdCell == grid)
+                    return static_cast<int>(i);
+            }
         }
-        
     }
     return -1; // No car found
 }
@@ -202,15 +230,16 @@ void Game::HandleTouch()
 
         CarsStates& car = GameLevelLoader::lev_data.at(touch_selected_car);
         OrientationRULES carOrientation = PosVehicules::OrientationRULESpreset.at(car.orientation);
+        uint8_t maxPos = 6 - PosVehicules::GetCarSize(car.carID); // 4 for 2-cell, 3 for 3-cell
 
         printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
             touch.px, touch.py, car.grid2d.x, car.grid2d.y, touch_selected_car);
-        
+
         // Check if drag exceeds threshold
         if (carOrientation == OrientationRULES::LEFT_RIGHT)
         {
             // Horizontal movement only
-            if (deltaX > DRAG_THRESHOLD && car.grid2d.x <= 3)
+            if (deltaX > DRAG_THRESHOLD && car.grid2d.x < maxPos)
             {
                 // Drag right
                 car.grid2d.x += 1;
@@ -242,7 +271,7 @@ void Game::HandleTouch()
         else
         {
             // Vertical movement only (TOP_UP)
-            if (deltaY > DRAG_THRESHOLD && car.grid2d.y <= 3)
+            if (deltaY > DRAG_THRESHOLD && car.grid2d.y < maxPos)
             {
                 // Drag down (increases Y in grid, which moves car down on screen)
                 car.grid2d.y += 1;
@@ -317,7 +346,7 @@ void Game::Init()
     size_t ori = 0;
     size_t tex = 0;
 
-    GameLevelLoader::LoadLevel(0);
+    GameLevelLoader::LoadLevelFromFile("/testlevel.bin");
     //cars.at(0) = {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
 
     
@@ -376,6 +405,9 @@ void Game::Update()
     bool change = false;
     Game::HandleTouch();
     
+    // Get max position for current car (4 for 2-cell, 3 for 3-cell)
+    uint8_t editCarMaxPos = 6 - PosVehicules::GetCarSize(GameLevelLoader::lev_data.at(edit_car).carID);
+
     if (keys & KEY_LEFT)
     {
         if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
@@ -390,7 +422,7 @@ void Game::Update()
 
     if (keys & KEY_RIGHT)
     {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
             if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
@@ -414,7 +446,7 @@ void Game::Update()
 
     if (keys & KEY_DOWN)
     {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y <= 3 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
         {
             GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
             if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
