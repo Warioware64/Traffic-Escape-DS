@@ -54,8 +54,8 @@ void GameLevelLoader::LoadLevel(int level)
         {
             n.basepose = PosVehicules::BasePoses.at(n.orientation);
 
-            // Fix weird behaviour of Car8
-            if (n.carID == 7)
+            // Fix weird behaviour of Car8 and Car4
+            if (n.carID == 7 || n.carID == 3)
             {
                 switch(n.orientation)
                 {
@@ -133,7 +133,7 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
             n.basepose = PosVehicules::BasePoses.at(n.orientation);
 
             // Fix weird behaviour of Car8
-            if (n.carID == 7)
+            if (n.carID == 7 || n.carID == 3)
             {
                 switch(n.orientation)
                 {
@@ -141,10 +141,14 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
                         n.basepose.x += 0.5;
                         break;
                     case 2:
-                        n.basepose.y += 0.5;
+                        if (n.carID == 3)
+                            n.basepose.y -= 0.5;
+                        else
+                            n.basepose.y += 0.5;
                         break;
                     case 3:
-                        n.basepose.y--;
+                        if (n.carID == 7)
+                            n.basepose.y--;
                         break;
                     default:
                         break;

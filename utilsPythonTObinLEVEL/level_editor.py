@@ -328,13 +328,13 @@ class LevelEditor:
 
         car = self.get_car_from_ui()
 
-        if not car.is_valid_position():
-            messagebox.showwarning("Invalid Position", "Car doesn't fit within grid bounds.")
-            return
+        #if not car.is_valid_position():
+            #messagebox.showwarning("Invalid Position", "Car doesn't fit within grid bounds.")
+            #return
 
-        if self.check_collision(car):
-            messagebox.showwarning("Collision", "Car overlaps with existing car.")
-            return
+        #if self.check_collision(car):
+            #messagebox.showwarning("Collision", "Car overlaps with existing car.")
+            #return
 
         self.cars.append(car)
         self.selected_car_index = len(self.cars) - 1

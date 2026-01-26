@@ -32,11 +32,15 @@ namespace Game
     inline int touch_last_y = 0;
     inline bool touch_dragging = false;
 
+    // Victory state
+    inline bool level_won = false;
+
     // Touch helper functions
     Grid2D ScreenToGrid(int px, int py);
     int FindCarAtGrid(Grid2D grid);
     void HandleTouch();
     void DrawDebugTouchZone();
+    bool CheckVictory();
 
     void Init();
     void Update();

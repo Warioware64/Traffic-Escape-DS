@@ -230,7 +230,16 @@ void Game::HandleTouch()
 
         CarsStates& car = GameLevelLoader::lev_data.at(touch_selected_car);
         OrientationRULES carOrientation = PosVehicules::OrientationRULESpreset.at(car.orientation);
-        uint8_t maxPos = 6 - PosVehicules::GetCarSize(car.carID); // 4 for 2-cell, 3 for 3-cell
+
+        uint8_t maxPos;
+
+        if (touch_selected_car == 0)
+        {
+            maxPos = 7 - PosVehicules::GetCarSize(car.carID);
+        } else {
+            maxPos = 6 - PosVehicules::GetCarSize(car.carID); // 4 for 2-cell, 3 for 3-cell
+        }
+        
 
         printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
             touch.px, touch.py, car.grid2d.x, car.grid2d.y, touch_selected_car);
@@ -308,6 +317,28 @@ void Game::HandleTouch()
         touch_selected_car = -1;
         touch_dragging = false;
     }
+}
+
+bool Game::CheckVictory()
+{
+    // First car (index 0) is the player car that needs to escape
+    const CarsStates& playerCar = GameLevelLoader::lev_data.at(0);
+
+    // Player car must be active
+    if (playerCar.true_car == 0)
+        return false;
+
+    // Player car must be horizontal (LEFT_RIGHT) to exit through the right
+    if (PosVehicules::OrientationRULESpreset.at(playerCar.orientation) != OrientationRULES::LEFT_RIGHT)
+        return false;
+
+    // Check if car has reached the exit (max X position)
+    // For a car of size N, max position is 6 - N (e.g., 4 for 2-cell car)
+    uint8_t carSize = PosVehicules::GetCarSize(playerCar.carID);
+    uint8_t exitPosition = 7 - carSize;
+
+    // Victory when car reaches the exit position
+    return playerCar.grid2d.x >= exitPosition;
 }
 
 void Game::Init()
@@ -400,62 +431,88 @@ void Game::Init()
 void Game::Update()
 {
     scanKeys();
-    //consoleClear();
     uint16_t keys = keysUp();
     bool change = false;
-    Game::HandleTouch();
-    
-    // Get max position for current car (4 for 2-cell, 3 for 3-cell)
-    uint8_t editCarMaxPos = 6 - PosVehicules::GetCarSize(GameLevelLoader::lev_data.at(edit_car).carID);
 
-    if (keys & KEY_LEFT)
+    // Check for victory
+    if (!level_won && CheckVictory())
     {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
-        {
-            GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
-            {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
-            }
-        }
+        level_won = true;
+        consoleClear();
+        printf("\x1b[10;8H*** LEVEL COMPLETE! ***");
+        printf("\x1b[12;6HPress START to continue");
     }
 
-    if (keys & KEY_RIGHT)
+    // If level is won, wait for START to continue
+    if (level_won)
     {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.x < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+        if (keys & KEY_START)
         {
-            GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+            // Reset for next level (or reload current level)
+            level_won = false;
+            consoleClear();
+            // TODO: Load next level
+            // GameLevelLoader::LoadLevelFromFile("/nextlevel.bin");
+        }
+        // Skip normal game logic when level is won
+    }
+    else
+    {
+        // Normal game logic - only when level is not won
+        Game::HandleTouch();
+
+        // Get max position for current car (4 for 2-cell, 3 for 3-cell)
+        uint8_t editCarMaxPos = 6 - PosVehicules::GetCarSize(GameLevelLoader::lev_data.at(edit_car).carID);
+
+        if (keys & KEY_LEFT)
+        {
+            if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                {
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+                }
             }
         }
-    }
-    
-    if (keys & KEY_UP)
-    {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
-        {
-            GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
-            {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
-            }
-        }
-    }
 
-    if (keys & KEY_DOWN)
-    {
-        if (GameLevelLoader::lev_data.at(edit_car).grid2d.y < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+        if (keys & KEY_RIGHT)
         {
-            GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
-            if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+            if (GameLevelLoader::lev_data.at(edit_car).grid2d.x < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                {
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+                }
+            }
+        }
+
+        if (keys & KEY_UP)
+        {
+            if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
             {
                 GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                {
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+                }
             }
         }
-    }
-    
+
+        if (keys & KEY_DOWN)
+        {
+            if (GameLevelLoader::lev_data.at(edit_car).grid2d.y < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+            {
+                GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                {
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+                }
+            }
+        }
+    } // End of else block (normal game logic)
+
     if (keys & KEY_A)
     {
         if (idMesh != PosVehicules::CarNames.size())
