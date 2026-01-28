@@ -10,6 +10,9 @@
 namespace Game
 {
     inline int textureID;
+    inline int frame;
+    inline int renderPass = 0;  // For dual 3D: 0 = first pass, 1 = second pass
+
     inline float x_test;
     inline float y_test;
     inline float z_test;

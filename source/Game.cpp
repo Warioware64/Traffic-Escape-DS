@@ -355,8 +355,8 @@ void Game::Init()
 
     nitroFSInit(NULL);
 
-    videoSetMode(MODE_0_3D);
     lcdMainOnBottom();
+    videoSetMode(MODE_0_3D);
     
     glInit();
 
@@ -368,6 +368,8 @@ void Game::Init()
 
     vramSetBankA(VRAM_A_TEXTURE);
     vramSetBankF(VRAM_F_TEX_PALETTE);
+
+    
     // The background must be fully opaque and have a unique polygon ID
     // (different from the polygons that are going to be drawn) so that
     // alpha blending works.
@@ -433,7 +435,7 @@ void Game::Update()
     scanKeys();
     uint16_t keys = keysUp();
     bool change = false;
-
+    //consoleClear();
     // Check for victory
     if (!level_won && CheckVictory())
     {
@@ -563,7 +565,7 @@ void Game::Update()
             edit_car = 0;
         }
     }
-
+    
     if (keys & KEY_R)
     {
         if (edit_car != 0)
@@ -581,6 +583,7 @@ void Game::Update()
     //glPolyFmt(POLY_ALPHA(31) | POLY_CULL_BACK | POLY_FORMAT_LIGHT0);
 
     
+    // Render grid
     glPushMatrix();
     glTranslatef(-1.25, -0.25, 0.5);
     glRotateX(85);
@@ -588,10 +591,8 @@ void Game::Update()
     glPolyFmt(POLY_ALPHA(31) | POLY_ID(0) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT1);
     glBindTexture(0, 0);
     glCallList(grid);
-
     glPopMatrix(1);
-    
-   
+
     size_t itemCount = 0;
 
     std::for_each(GameLevelLoader::lev_data.begin(), GameLevelLoader::lev_data.end(), [&itemCount](const CarsStates& n){
@@ -611,13 +612,11 @@ void Game::Update()
             {
                 glPolyFmt(POLY_ALPHA(31) | POLY_ID(0) | POLY_CULL_BACK | POLY_MODULATION | POLY_FORMAT_LIGHT0);
             }
-            
 
             glBindTexture(0, n.texGLptr);
             glCallList(n.ptrMesh);
 
             glPopMatrix(1);
-
         }
 
         itemCount++;
@@ -635,7 +634,11 @@ void Game::Update()
     std::cout << "getHeapLimit : " << (const char)getHeapLimit() << std::endl;
     std::cout << "getHeapEnd : " << (const char)getHeapEnd() << std::endl;
     */
-    
+    while (GFX_STATUS & BIT(27));
+            
+    printf("%d Vertex\n", GFX_VERTEX_RAM_USAGE);
+    printf("%d Polygon\n", GFX_POLYGON_RAM_USAGE);
+
     glFlush(0);
     swiWaitForVBlank();
 }

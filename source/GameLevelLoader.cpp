@@ -141,14 +141,8 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
                         n.basepose.x += 0.5;
                         break;
                     case 2:
-                        if (n.carID == 3)
-                            n.basepose.y -= 0.5;
-                        else
-                            n.basepose.y += 0.5;
-                        break;
-                    case 3:
-                        if (n.carID == 7)
-                            n.basepose.y--;
+
+                        n.basepose.y -= 0.5;
                         break;
                     default:
                         break;
