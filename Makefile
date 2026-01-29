@@ -15,6 +15,7 @@ NITROFSDIR	:= nitrofiles
 
 #AUDIODIRS	:= audio
 #BINDIRS 	:= bin
+#GFXDIRS		:= graphics
 # Libraries
 
 LIBS		:= -lnds9 -lmm9  -lNE

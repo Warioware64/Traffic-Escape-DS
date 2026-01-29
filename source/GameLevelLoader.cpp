@@ -45,6 +45,70 @@ inline bool carOccupiesCell(const CarsStates& car, Grid2D cell)
     return false;
 }
 
+void GameLevelLoader::LoadBG(size_t bgID)
+{
+    FILE* file;
+    
+    void *PtrImg;
+    void *PtrMap;
+    void *PtrPal;
+
+    
+    std::string pathImg = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".img.bin";
+    std::string pathMap = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".map.bin";
+    std::string pathPal = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".pal.bin";
+    
+    file = fopen(pathImg.c_str(), "rb");
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_img = ftell(file);
+    PtrImg = malloc(size_bytes_img);
+    rewind(file);
+
+    fread(PtrImg, sizeof(uint8_t), size_bytes_img, file);
+
+    fclose(file);
+
+    pathImg.clear();
+
+    file = fopen(pathMap.c_str(), "rb");
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_map = ftell(file);
+    PtrMap = malloc(size_bytes_map);
+    rewind(file);
+
+    fread(PtrMap, sizeof(uint8_t), size_bytes_map, file);
+
+    fclose(file);
+
+    pathMap.clear();
+
+    file = fopen(pathPal.c_str(), "rb");
+
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_pal = ftell(file);
+    PtrPal = malloc(size_bytes_pal);
+    rewind(file);
+
+    fread(PtrPal, sizeof(uint8_t), size_bytes_pal, file);
+
+    fclose(file);
+
+    pathPal.clear();
+
+    int bg = bgInit(1, BgType_Text8bpp, BgSize_T_256x256, 0, 1);
+    bgSetPriority(bg, 2);  // Lower priority (higher number) than 3D layer 0
+    memcpy(bgGetGfxPtr(bg), PtrImg, size_bytes_img);
+    memcpy(bgGetMapPtr(bg), PtrMap, size_bytes_map);
+    memcpy(BG_PALETTE, PtrPal, size_bytes_pal);
+    
+    free(PtrImg);
+    free(PtrMap);
+    free(PtrPal);
+}
+
 void GameLevelLoader::LoadLevel(int level)
 {
     lev_data = Levels.at(level);

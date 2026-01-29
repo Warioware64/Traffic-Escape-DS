@@ -357,7 +357,19 @@ void Game::Init()
 
     lcdMainOnBottom();
     videoSetMode(MODE_0_3D);
-    
+
+
+    vramSetBankA(VRAM_A_TEXTURE);      
+    vramSetBankB(VRAM_B_TEXTURE);     
+
+    vramSetBankE(VRAM_E_MAIN_BG);  
+
+    vramSetBankF(VRAM_F_TEX_PALETTE);  // 3D texture palettes
+
+    // Initialize 2D background (after VRAM setup!)
+    GameLevelLoader::LoadBG(0);
+
+    // Initialize 3D (after VRAM setup!)
     glInit();
 
     glEnable(GL_TEXTURE_2D);
@@ -365,9 +377,6 @@ void Game::Init()
     glEnable(GL_OUTLINE);
 
     glSetOutlineColor(0, RGB15(31, 0, 0));
-
-    vramSetBankA(VRAM_A_TEXTURE);
-    vramSetBankF(VRAM_F_TEX_PALETTE);
 
     
     // The background must be fully opaque and have a unique polygon ID
@@ -397,9 +406,9 @@ void Game::Init()
 
     glColorTableEXT(0, 0, 256, 0, 0, car_pal_bin);*/
 
-    glClearColor(0, 0, 0, 31);
-    glClearPolyID(0);
-    //glClearPolyID(63);
+    // Alpha=0 so 2D background can be seen behind 3D layer
+    glClearColor(0, 0, 0, 0);
+    glClearPolyID(0);  // Must be different from polygon IDs for alpha blending
 
     glClearDepth(0x7FFF);
 
@@ -433,8 +442,10 @@ void Game::Init()
 void Game::Update()
 {
     scanKeys();
+    
     uint16_t keys = keysUp();
     bool change = false;
+    bgUpdate();
     //consoleClear();
     // Check for victory
     if (!level_won && CheckVictory())
@@ -634,10 +645,12 @@ void Game::Update()
     std::cout << "getHeapLimit : " << (const char)getHeapLimit() << std::endl;
     std::cout << "getHeapEnd : " << (const char)getHeapEnd() << std::endl;
     */
+    /*
     while (GFX_STATUS & BIT(27));
             
     printf("%d Vertex\n", GFX_VERTEX_RAM_USAGE);
     printf("%d Polygon\n", GFX_POLYGON_RAM_USAGE);
+    */
 
     glFlush(0);
     swiWaitForVBlank();

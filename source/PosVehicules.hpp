@@ -2,11 +2,14 @@
 
 #include <nds.h>
 #include <filesystem.h>
-
+#include <unordered_map>
 #include <algorithm>
 #include <stdio.h>
 #include <array>
 #include <string>
+
+
+
 
 enum class OrientationRULES : uint8_t
 {
@@ -48,6 +51,8 @@ using LevelData = std::array<CarsStates, 16>;
 
 namespace PosVehicules
 {
+    inline std::unordered_map<size_t, int> textureMap;
+
     constexpr inline std::array<BasePos, 4> BasePoses = {{
         {-1.25, 2.25, 0.5},
         {-0.75, 2.25, 0.5},
@@ -103,12 +108,17 @@ namespace PosVehicules
     
     inline void LoadVehicule_Texture(int *texGLptr, size_t textureID)
     {
+        if (textureMap.find(textureID) != textureMap.end())
+        {
+            *texGLptr = textureMap[textureID];  // Copy the cached texture ID to caller's variable
+            return;
+        }
         FILE* file;
 
         void *TexPtr;
         void *PalPtr;
 
-        std::string pathTex = "/Vehicules/Textures/" + PosVehicules::TextureNames.at(textureID) + "_tex.bin";
+        std::string pathTex = "/Vehicules/Textures/" + PosVehicules::TextureNames.at(textureID) + "_combined.bin";
 
         file = fopen(pathTex.c_str(), "rb");
         fseek(file, 0, SEEK_END);
@@ -145,11 +155,13 @@ namespace PosVehicules
         
         glBindTexture(0, *texGLptr);
 
-        glTexImage2D(0, 0, GL_RGB256, 128, 128, 0,
-                     TEXGEN_TEXCOORD | GL_TEXTURE_COLOR0_TRANSPARENT,
+        glTexImage2D(0, 0, GL_COMPRESSED, 128, 128, 0,
+                     TEXGEN_TEXCOORD,  // GL_TEXTURE_COLOR0_TRANSPARENT doesn't work with GL_COMPRESSED
                      (const int32_t*)TexPtr);
 
-        glColorTableEXT(0, 0, 256, 0, 0, (const int32_t*)PalPtr);
+        glColorTableEXT(0, 0, size_bytes_pal / 2, 0, 0, (const int32_t*)PalPtr);
+        
+        textureMap[textureID] = *texGLptr;  // Store the texture ID value, not the pointer
 
         free(PalPtr);
         free(TexPtr);

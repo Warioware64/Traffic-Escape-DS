@@ -1,3 +1,5 @@
 *.nds
 build/
-#assetsMake/
+AssetsFactory/
+assetsMake/
+
