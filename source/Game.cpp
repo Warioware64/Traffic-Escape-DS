@@ -366,10 +366,8 @@ void Game::Init()
 
     vramSetBankF(VRAM_F_TEX_PALETTE);  // 3D texture palettes
 
-    // Initialize 2D background (after VRAM setup!)
-    GameLevelLoader::LoadBG(0);
-
     // Initialize 3D (after VRAM setup!)
+    // Note: Background is loaded by LoadLevelFromFile based on level's bgID
     glInit();
 
     glEnable(GL_TEXTURE_2D);

@@ -108,9 +108,9 @@ for png_file in BGs/*.png; do
         "$png_file" \
         -gt \
         -gB8 \
-        -mR8 \
+        -mRtf \
         -mLs \
-        -gTFFOOFF \
+        -gTFF00FF \
         -ftb \
         -fh! \
         -o "../nitrofiles/BGs/${filename}"

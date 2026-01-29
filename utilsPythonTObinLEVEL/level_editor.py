@@ -40,6 +40,9 @@ ORIENTATIONS = [
     "3 - Vertical (bottom anchor)"
 ]
 
+# Background options (must match GameLevelLoader::BG_name_list)
+BACKGROUND_NAMES = ["sky1", "sky2", "sky3", "sky4", "sky5", "sky6"]
+
 # Orientation rules: 0,1 = LEFT_RIGHT, 2,3 = TOP_UP
 ORIENTATION_HORIZONTAL = [0, 1]
 ORIENTATION_VERTICAL = [2, 3]
@@ -95,6 +98,7 @@ class LevelEditor:
 
         self.cars = []
         self.selected_car_index = None
+        self.background_id = 0  # Default background
 
         self.setup_ui()
         self.draw_grid()
@@ -177,9 +181,19 @@ class LevelEditor:
         self.car_listbox.pack(fill="both", expand=True)
         self.car_listbox.bind("<<ListboxSelect>>", self.on_list_select)
 
+        # Level Properties (background)
+        level_frame = ttk.LabelFrame(main_frame, text="Level Properties", padding="10")
+        level_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+
+        ttk.Label(level_frame, text="Background:").pack(side="left", padx=5)
+        self.background_var = tk.StringVar(value=BACKGROUND_NAMES[0])
+        bg_combo = ttk.Combobox(level_frame, textvariable=self.background_var, values=BACKGROUND_NAMES, width=15)
+        bg_combo.pack(side="left", padx=5)
+        bg_combo.bind("<<ComboboxSelected>>", self.on_background_change)
+
         # File operations
         file_frame = ttk.LabelFrame(main_frame, text="File Operations", padding="10")
-        file_frame.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        file_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
         ttk.Button(file_frame, text="Save Binary (.bin)", command=self.save_binary).pack(side="left", padx=5)
         ttk.Button(file_frame, text="Load Binary (.bin)", command=self.load_binary).pack(side="left", padx=5)
@@ -189,7 +203,7 @@ class LevelEditor:
         # Status bar
         self.status_var = tk.StringVar(value="Ready. Click on grid to place cars.")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief="sunken")
-        status_bar.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        status_bar.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
     def draw_grid(self):
         """Draw the 6x6 grid and all cars"""
@@ -293,6 +307,11 @@ class LevelEditor:
         if self.selected_car_index is not None:
             self.update_car()
 
+    def on_background_change(self, event=None):
+        """Handle background selection change"""
+        self.background_id = BACKGROUND_NAMES.index(self.background_var.get())
+        self.status_var.set(f"Background set to: {self.background_var.get()}")
+
     def update_size_label(self):
         """Update the car size label"""
         car_id = CAR_NAMES.index(self.car_type_var.get())
@@ -387,12 +406,14 @@ class LevelEditor:
         self.list_frame_label.config(text=f"Cars ({len(self.cars)}/{MAX_CARS})")
 
     def clear_all(self):
-        """Clear all cars"""
+        """Clear all cars and reset background"""
         if self.cars and not messagebox.askyesno("Confirm", "Clear all cars?"):
             return
 
         self.cars = []
         self.selected_car_index = None
+        self.background_id = 0
+        self.background_var.set(BACKGROUND_NAMES[0])
         self.update_car_list()
         self.draw_grid()
         self.status_var.set("All cars cleared.")
@@ -410,8 +431,8 @@ class LevelEditor:
 
         try:
             with open(filename, 'wb') as f:
-                # Write number of cars
-                f.write(struct.pack('B', len(self.cars)))
+                # Write header: number of cars, background ID
+                f.write(struct.pack('BB', len(self.cars), self.background_id))
 
                 # Write each car: true_car, carID, orientation, tex, grid_x, grid_y
                 for car in self.cars:
@@ -446,8 +467,14 @@ class LevelEditor:
 
         try:
             with open(filename, 'rb') as f:
-                # Read number of cars
-                num_cars = struct.unpack('B', f.read(1))[0]
+                # Read header: number of cars, background ID
+                header = struct.unpack('BB', f.read(2))
+                num_cars = header[0]
+                self.background_id = header[1]
+
+                # Update background combobox
+                if self.background_id < len(BACKGROUND_NAMES):
+                    self.background_var.set(BACKGROUND_NAMES[self.background_id])
 
                 self.cars = []
                 for _ in range(MAX_CARS):
@@ -460,7 +487,7 @@ class LevelEditor:
             self.selected_car_index = None
             self.update_car_list()
             self.draw_grid()
-            self.status_var.set(f"Loaded {len(self.cars)} cars from {os.path.basename(filename)}")
+            self.status_var.set(f"Loaded {len(self.cars)} cars, BG: {BACKGROUND_NAMES[self.background_id]} from {os.path.basename(filename)}")
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load: {e}")

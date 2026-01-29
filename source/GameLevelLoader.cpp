@@ -168,9 +168,14 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
         car.texGLptr = 0;
     }
 
-    // Read number of cars (first byte)
+    // Read header: number of cars (byte 0), background ID (byte 1)
     uint8_t numCars;
+    uint8_t bgID;
     fread(&numCars, 1, 1, file);
+    fread(&bgID, 1, 1, file);
+
+    // Load the background
+    LoadBG(bgID);
 
     // Read each car: true_car, carID, orientation, tex, grid_x, grid_y (6 bytes each)
     for (size_t i = 0; i < 16; i++)
