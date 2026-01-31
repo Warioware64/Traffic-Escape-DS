@@ -367,6 +367,10 @@ void Game::Init()
     vramSetBankE(VRAM_E_MAIN_BG);  
 
     vramSetBankF(VRAM_F_TEX_PALETTE);  // 3D texture palettes
+    vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);  // Sub screen BG extended palettes
+
+    // Enable extended palettes for sub screen
+    bgExtPaletteEnableSub();
 
     // Initialize 3D (after VRAM setup!)
     // Note: Background is loaded by LoadLevelFromFile based on level's bgID

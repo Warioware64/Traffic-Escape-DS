@@ -45,6 +45,66 @@ inline bool carOccupiesCell(const CarsStates& car, Grid2D cell)
     return false;
 }
 
+
+void GameLevelLoader::LoadBGtoptext()
+{
+    FILE* file;
+    
+    void *PtrImg;
+    void *PtrMap;
+    void *PtrPal;
+    
+    file = fopen("/BGs/bgtopscreentext.img.bin", "rb");
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_img = ftell(file);
+    PtrImg = malloc(size_bytes_img);
+    rewind(file);
+
+    fread(PtrImg, sizeof(uint8_t), size_bytes_img, file);
+
+    fclose(file);
+
+    file = fopen("/BGs/bgtopscreentext.map.bin", "rb");
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_map = ftell(file);
+    PtrMap = malloc(size_bytes_map);
+    rewind(file);
+
+    fread(PtrMap, sizeof(uint8_t), size_bytes_map, file);
+
+    fclose(file);
+    
+    file = fopen("/BGs/bgtopscreentext.pal.bin", "rb");
+
+    fseek(file, 0, SEEK_END);
+
+    size_t size_bytes_pal = ftell(file);
+    PtrPal = malloc(size_bytes_pal);
+    rewind(file);
+
+    fread(PtrPal, sizeof(uint8_t), size_bytes_pal, file);
+
+    fclose(file);
+
+    // Text layer on BG0 (in front), use map base 2, tile base 4 to avoid conflict
+    int bg = bgInitSub(0, BgType_Text8bpp, BgSize_T_256x256, 2, 4);
+    bgSetPriority(bg, 0);  // Highest priority (in front)
+    memcpy(bgGetGfxPtr(bg), PtrImg, size_bytes_img);
+    memcpy(bgGetMapPtr(bg), PtrMap, size_bytes_map);
+
+    // Copy palette to extended palette slot 0 for BG0
+    // Unlock VRAM_H for CPU access
+    vramSetBankH(VRAM_H_LCD);
+    memcpy(VRAM_H, PtrPal, size_bytes_pal);  // BG0 ext palette at offset 0
+    vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);
+    
+    free(PtrImg);
+    free(PtrMap);
+    free(PtrPal);
+}
+
 void GameLevelLoader::LoadBGtop()
 {
     FILE* file;
@@ -87,11 +147,16 @@ void GameLevelLoader::LoadBGtop()
 
     fclose(file);
 
+    // Background on BG1 (behind text), map base 0, tile base 1
     int bg = bgInitSub(1, BgType_Text8bpp, BgSize_T_256x256, 0, 1);
-    bgSetPriority(bg, 2);  // Lower priority (higher number) than 3D layer 0
+    bgSetPriority(bg, 1);  // Behind text layer (priority 0)
     memcpy(bgGetGfxPtr(bg), PtrImg, size_bytes_img);
     memcpy(bgGetMapPtr(bg), PtrMap, size_bytes_map);
-    memcpy(BG_PALETTE_SUB, PtrPal, size_bytes_pal);
+
+    // Copy palette to extended palette slot 0 for BG1 (offset 0x2000 = 8KB)
+    vramSetBankH(VRAM_H_LCD);
+    memcpy((uint8_t*)VRAM_H + 0x2000, PtrPal, size_bytes_pal);
+    vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);
     
     free(PtrImg);
     free(PtrMap);
@@ -229,6 +294,7 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
     // Load the background
     LoadBG(bgID);
     LoadBGtop();
+    LoadBGtoptext();
     // Read each car: true_car, carID, orientation, tex, grid_x, grid_y (6 bytes each)
     for (size_t i = 0; i < 16; i++)
     {
