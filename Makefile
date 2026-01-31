@@ -18,8 +18,9 @@ NITROFSDIR	:= nitrofiles
 #GFXDIRS		:= graphics
 # Libraries
 
-LIBS		:= -lnds9 -lmm9  -lNE
+LIBS		:= -lnds9 -lmm9  -lNE -ldsf
 LIBDIRS		:= $(BLOCKSDS)/libs/maxmod \
+			$(BLOCKSDSEXT)/libdsf \
 			$(BLOCKSDSEXT)/nitro-engine
 
 CXXFLAGS	+= -fpermissive

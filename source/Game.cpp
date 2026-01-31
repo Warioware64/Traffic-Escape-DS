@@ -212,9 +212,9 @@ void Game::HandleTouch()
         Grid2D touchedGrid = ScreenToGrid(touch.px, touch.py);
         touch_selected_car = FindCarAtGrid(touchedGrid);
 
-        printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
-            touch.px, touch.py, touchedGrid.x, touchedGrid.y, touch_selected_car);
-            
+        // printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
+        //     touch.px, touch.py, touchedGrid.x, touchedGrid.y, touch_selected_car);
+
         // Update edit_car to show selection highlight
         if (touch_selected_car >= 0)
         {
@@ -241,8 +241,8 @@ void Game::HandleTouch()
         }
         
 
-        printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
-            touch.px, touch.py, car.grid2d.x, car.grid2d.y, touch_selected_car);
+        // printf("\x1b[0;0Hpx=%3d py=%3d -> grid(%d,%d) car=%2d  \n",
+        //     touch.px, touch.py, car.grid2d.x, car.grid2d.y, touch_selected_car);
 
         // Check if drag exceeds threshold
         if (carOrientation == OrientationRULES::LEFT_RIGHT)
@@ -343,9 +343,10 @@ bool Game::CheckVictory()
 
 void Game::Init()
 {
-    // Enable top screen console for debug output
-    consoleDemoInit();
-
+    // Console disabled - sub screen used for background
+    // consoleDemoInit();
+    
+    
     idMesh = 0;
     idOrient = 0;
     idTex = 0;
@@ -355,13 +356,14 @@ void Game::Init()
 
     nitroFSInit(NULL);
 
+
     lcdMainOnBottom();
     videoSetMode(MODE_0_3D);
-
+    videoSetModeSub(MODE_0_2D);
 
     vramSetBankA(VRAM_A_TEXTURE);      
     vramSetBankB(VRAM_B_TEXTURE);     
-
+    vramSetBankC(VRAM_C_SUB_BG);  
     vramSetBankE(VRAM_E_MAIN_BG);  
 
     vramSetBankF(VRAM_F_TEX_PALETTE);  // 3D texture palettes
@@ -389,7 +391,6 @@ void Game::Init()
     GameLevelLoader::LoadLevelFromFile("/testlevel.bin");
     //cars.at(0) = {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
 
-    
 
     //x_test = PosVehicules::BasePoses.at(ori).x;
     //y_test = PosVehicules::BasePoses.at(ori).y;
@@ -449,9 +450,10 @@ void Game::Update()
     if (!level_won && CheckVictory())
     {
         level_won = true;
-        consoleClear();
-        printf("\x1b[10;8H*** LEVEL COMPLETE! ***");
-        printf("\x1b[12;6HPress START to continue");
+        // TODO: Show victory message using FontSub or sprites
+        // consoleClear();
+        // printf("\x1b[10;8H*** LEVEL COMPLETE! ***");
+        // printf("\x1b[12;6HPress START to continue");
     }
 
     // If level is won, wait for START to continue
@@ -461,7 +463,7 @@ void Game::Update()
         {
             // Reset for next level (or reload current level)
             level_won = false;
-            consoleClear();
+            // consoleClear();
             // TODO: Load next level
             // GameLevelLoader::LoadLevelFromFile("/nextlevel.bin");
         }

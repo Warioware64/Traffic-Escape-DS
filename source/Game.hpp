@@ -1,4 +1,5 @@
 #pragma once
+#include <dsf.h>
 #include <nds.h>
 #include <iostream>
 #include <filesystem.h>
