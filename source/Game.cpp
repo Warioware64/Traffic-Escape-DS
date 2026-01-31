@@ -350,12 +350,12 @@ void Game::Init()
     idMesh = 0;
     idOrient = 0;
     idTex = 0;
-
+    
     edit_car = 0;
     //FILE* file;
 
-    nitroFSInit(NULL);
-
+    //nitroFSInit(NULL);
+    
 
     lcdMainOnBottom();
     videoSetMode(MODE_0_3D);
@@ -440,6 +440,17 @@ void Game::Init()
     // Setup lights
     glLight(0, RGB15(31, 31, 31), floattov10(-1.0), floattov10(-1.0), floattov10(-1.0));
     glLight(1, RGB15(31, 31, 31), floattov10(-0.75), floattov10(-0.75), floattov10(-0.75));
+
+    int brightness = 16;
+    for (int i = 0; i < 120 ; i++)
+    {
+        if (brightness > 0)
+        {
+            brightness--;
+            setBrightness(3, brightness);
+        }
+        swiWaitForVBlank();
+    }
 }
 
 void Game::Update()

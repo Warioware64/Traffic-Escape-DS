@@ -6,11 +6,11 @@
 
 #include <filesystem.h>
 #include "Game.hpp"
-
+#include "MainMenu.hpp"
 
 int main(int argc, char *argv[])
 {
-    
+    MainMenu::Intro();
     Game::Init();
     while (1)
     {
