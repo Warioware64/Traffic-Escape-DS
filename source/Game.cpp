@@ -442,7 +442,7 @@ void Game::Init()
     glLight(1, RGB15(31, 31, 31), floattov10(-0.75), floattov10(-0.75), floattov10(-0.75));
 
     int brightness = 16;
-    for (int i = 0; i < 120 ; i++)
+    for (int i = 0; i < 16 ; i++)
     {
         if (brightness > 0)
         {
