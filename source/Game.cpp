@@ -1,5 +1,11 @@
 #include "Game.hpp"
 
+#include "BGFont.hpp"
+
+#include "IsometricBold_charmap.h"  // Generated header
+#include "IsometricBold_tiles_bin.h"
+#include "IsometricBold_pal_bin.h"
+
 #include "GridMesh.hpp"
 #include "GameLevelLoader.hpp"
 
@@ -395,7 +401,21 @@ void Game::Init()
     GameLevelLoader::LoadLevelFromFile("/testlevel.bin");
     //cars.at(0) = {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
 
+    BGFont::FontConfig fontCfg = {
+        .tiles = IsometricBold_tiles_bin,
+        .tilesSize = IsometricBold_tiles_bin_size,
+        .palette = IsometricBold_pal_bin,
+        .paletteSize = IsometricBold_pal_bin_size,
+        .charWidths = isometricbold_char_widths,
+        .tileWidth = ISOMETRICBOLD_TILE_WIDTH,
+        .tileHeight = ISOMETRICBOLD_TILE_HEIGHT,
+        .columns = ISOMETRICBOLD_COLUMNS,
+        .tilesPerRow = ISOMETRICBOLD_TILES_PER_ROW,  // NEW: from charmap header
+        .firstChar = ' ',
+        .lastChar = '~'
+    };
 
+    BGFont::Init(BGFont::SCREEN_SUB, 0, fontCfg, 3, 5, 0, true);
     //x_test = PosVehicules::BasePoses.at(ori).x;
     //y_test = PosVehicules::BasePoses.at(ori).y;
     //z_test = PosVehicules::BasePoses.at(ori).z;
@@ -460,6 +480,7 @@ void Game::Update()
     uint16_t keys = keysUp();
     bool change = false;
     bgUpdate();
+    BGFont::Print(0, 1, "Score: 1234");
     //consoleClear();
     // Check for victory
     if (!level_won && CheckVictory())

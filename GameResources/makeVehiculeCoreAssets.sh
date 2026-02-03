@@ -132,13 +132,14 @@ echo "=========================================="
 echo "Conversion Complete!"
 echo "=========================================="
 
-$GRIT \
-    "TextBG/bgtopscreentext.png" \
-    -gt \
-    -gB8 \
-    -mRtf \
-    -mLs \
-    -gT919191 \
-    -ftb \
-    -fh! \
-    -o "../nitrofiles/BGs/bgtopscreentext"
+
+#$GRIT \
+#    "TextBG/bgtopscreentext.png" \
+#    -gt \
+#    -gB8 \
+#    -mRtf \
+#    -mLs \
+#    -gT919191 \
+#    -ftb \
+#    -fh! \
+#    -o "../nitrofiles/BGs/bgtopscreentext"

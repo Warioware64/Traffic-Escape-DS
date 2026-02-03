@@ -14,7 +14,7 @@ NITROFSDIR	:= nitrofiles
 # Source code paths
 
 #AUDIODIRS	:= audio
-#BINDIRS 	:= bin
+BINDIRS 	:= bin
 #GFXDIRS		:= graphics
 # Libraries
 
