@@ -294,7 +294,7 @@ bool GameLevelLoader::LoadLevelFromFile(const char* filename)
     // Load the background
     LoadBG(bgID);
     LoadBGtop();
-    LoadBGtoptext();
+    // LoadBGtoptext();  // Removed - not used
     // Read each car: true_car, carID, orientation, tex, grid_x, grid_y (6 bytes each)
     for (size_t i = 0; i < 16; i++)
     {

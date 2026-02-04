@@ -1,8 +1,10 @@
-python3 ttf_to_atlas.py /home/jon/ProjetDSi/Traffic-Escape-DS/Traffic-Escape-DS/assetsMake/3DIsometric-Bold.ttf \
-    -o IsometricBold \
-    --size 18 \
-    --metatile 24x16 \
-    --columns 8 \
-    --transparent 000000 \
+python3 ttf_to_atlas.py PeaberryBase.ttf \
+    -o PeaberryBase \
+    --size 10 \
+    --metatile 8x16 \
+    --columns 16 \
+    --transparent FFFFFF \
+    --color 000000 \
+    --antialias \
     --chars basic
-./IsometricBold_convert.sh
+./PeaberryBase_convert.sh

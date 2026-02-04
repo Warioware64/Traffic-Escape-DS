@@ -62,7 +62,7 @@ def hex_to_rgb(hex_color):
 
 def create_font_atlas(ttf_path, output_name, font_size=8, metatile=(8, 8),
                       chars='ascii', columns=16, transparent_color='FF00FF',
-                      antialias=False):
+                      text_color='FFFFFF', antialias=False):
     """
     Create a font atlas from a TTF file.
 
@@ -78,6 +78,7 @@ def create_font_atlas(ttf_path, output_name, font_size=8, metatile=(8, 8),
     """
     tile_w, tile_h = metatile
     trans_rgb = hex_to_rgb(transparent_color)
+    text_rgb = hex_to_rgb(text_color)
 
     # Get character set
     char_set = get_character_set(chars)
@@ -161,8 +162,7 @@ def create_font_atlas(ttf_path, output_name, font_size=8, metatile=(8, 8),
             char_widths[char] = tile_w // 3  # Space is narrower
 
         # Draw character
-        text_color = (255, 255, 255)  # White text
-        draw.text((x + offset_x, y + offset_y), char, font=font, fill=text_color)
+        draw.text((x + offset_x, y + offset_y), char, font=font, fill=text_rgb)
 
         # Store mapping
         char_map[char] = i
@@ -320,6 +320,8 @@ Examples:
     %(prog)s myfont.ttf -o myfont --size 12 --metatile 8x16
     %(prog)s myfont.ttf -o myfont --chars "0123456789:/"
     %(prog)s myfont.ttf -o myfont --chars extended --columns 32
+    %(prog)s myfont.ttf -o myfont --color FF0000  # Red text
+    %(prog)s myfont.ttf -o myfont --color 00FF00  # Green text
         """
     )
 
@@ -336,6 +338,8 @@ Examples:
                         help='Columns in atlas (default: 16)')
     parser.add_argument('--transparent', default='FF00FF',
                         help='Transparent color hex (default: FF00FF)')
+    parser.add_argument('--color', default='FFFFFF',
+                        help='Text color hex (default: FFFFFF white)')
     parser.add_argument('--antialias', action='store_true',
                         help='Enable antialiasing (not recommended)')
 
@@ -360,6 +364,7 @@ Examples:
         chars=args.chars,
         columns=args.columns,
         transparent_color=args.transparent,
+        text_color=args.color,
         antialias=args.antialias
     )
 

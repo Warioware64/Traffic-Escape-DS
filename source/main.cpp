@@ -1,6 +1,3 @@
-
-
-
 #include <nds.h>
 #include <stdio.h>
 
@@ -10,8 +7,16 @@
 
 int main(int argc, char *argv[])
 {
+    // Show intro sequence
     MainMenu::Intro();
-    Game::Init();
+
+    // Show level selection and get selected level
+    int selectedLevel = MainMenu::ShowLevelSelect();
+
+    // Initialize game with selected level
+    Game::Init(selectedLevel);
+
+    // Main game loop
     while (1)
     {
         Game::Update();

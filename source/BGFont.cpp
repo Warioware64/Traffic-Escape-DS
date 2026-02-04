@@ -45,7 +45,8 @@ static inline int GetCharTileBase(char c) {
     // tilesPerRow is the actual number of 8x8 tiles per row in the atlas image
     int tileIndex = (charRow * state.charHeight * state.tilesPerRow) + (charCol * state.charWidth);
 
-    return tileIndex;
+    // Grit adds an empty tile at index 0, so all actual tiles are offset by 1
+    return tileIndex + 1;
 }
 
 int Init(Screen screen, int bgLayer, const FontConfig& config,

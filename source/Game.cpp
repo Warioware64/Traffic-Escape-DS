@@ -2,9 +2,9 @@
 
 #include "BGFont.hpp"
 
-#include "IsometricBold_charmap.h"  // Generated header
-#include "IsometricBold_tiles_bin.h"
-#include "IsometricBold_pal_bin.h"
+#include "PeaberryBase_charmap.h"  // Generated header
+#include "PeaberryBase_tiles_bin.h"
+#include "PeaberryBase_pal_bin.h"
 
 #include "GridMesh.hpp"
 #include "GameLevelLoader.hpp"
@@ -347,16 +347,21 @@ bool Game::CheckVictory()
     return playerCar.grid2d.x >= exitPosition;
 }
 
-void Game::Init()
+void Game::Init(int level)
 {
+    // Blank screen during loading (prevents magenta artifacts)
+    setBrightness(3, 16);
+
     // Console disabled - sub screen used for background
     // consoleDemoInit();
-    
-    
+
+    // Store current level
+    currentLevel = level;
+
     idMesh = 0;
     idOrient = 0;
     idTex = 0;
-    
+
     edit_car = 0;
     //FILE* file;
 
@@ -398,19 +403,22 @@ void Game::Init()
     size_t ori = 0;
     size_t tex = 0;
 
-    GameLevelLoader::LoadLevelFromFile("/testlevel.bin");
+    // Load level based on selection
+    char levelPath[32];
+    sprintf(levelPath, "/Levels/Level%d.bin", currentLevel + 1);
+    GameLevelLoader::LoadLevelFromFile(levelPath);
     //cars.at(0) = {.true_car = 1, .ptrMesh = nullptr, .texGLptr = 0, .carID = mesh, .orientation = ori, .tex = tex, .basepose = PosVehicules::BasePoses.at(ori), .grid2d = {0, 0}};
 
     BGFont::FontConfig fontCfg = {
-        .tiles = IsometricBold_tiles_bin,
-        .tilesSize = IsometricBold_tiles_bin_size,
-        .palette = IsometricBold_pal_bin,
-        .paletteSize = IsometricBold_pal_bin_size,
-        .charWidths = isometricbold_char_widths,
-        .tileWidth = ISOMETRICBOLD_TILE_WIDTH,
-        .tileHeight = ISOMETRICBOLD_TILE_HEIGHT,
-        .columns = ISOMETRICBOLD_COLUMNS,
-        .tilesPerRow = ISOMETRICBOLD_TILES_PER_ROW,  // NEW: from charmap header
+        .tiles = PeaberryBase_tiles_bin,
+        .tilesSize = PeaberryBase_tiles_bin_size,
+        .palette = PeaberryBase_pal_bin,
+        .paletteSize = PeaberryBase_pal_bin_size,
+        .charWidths = peaberrybase_char_widths,
+        .tileWidth = PEABERRYBASE_TILE_WIDTH,
+        .tileHeight = PEABERRYBASE_TILE_HEIGHT,
+        .columns = PEABERRYBASE_COLUMNS,
+        .tilesPerRow = PEABERRYBASE_TILES_PER_ROW,  // NEW: from charmap header
         .firstChar = ' ',
         .lastChar = '~'
     };
@@ -480,7 +488,21 @@ void Game::Update()
     uint16_t keys = keysUp();
     bool change = false;
     bgUpdate();
-    BGFont::Print(0, 1, "Score: 1234");
+
+    // Update timer (60fps)
+    if (timer_running && !level_won) {
+        timer_frames++;
+    }
+
+    // Calculate minutes, seconds, and milliseconds from frames (60fps)
+    uint32_t total_seconds = timer_frames / 60;
+    uint32_t remaining_frames = timer_frames % 60;
+    uint32_t milliseconds = (remaining_frames * 1000) / 60;  // Convert frames to ms
+    uint32_t minutes = total_seconds / 60;
+    uint32_t seconds = total_seconds % 60;
+
+    // Display timer (MM:SS.mmm)
+    BGFont::Printf(2, 1, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
     //consoleClear();
     // Check for victory
     if (!level_won && CheckVictory())
@@ -499,6 +521,8 @@ void Game::Update()
         {
             // Reset for next level (or reload current level)
             level_won = false;
+            timer_frames = 0;  // Reset timer
+            timer_running = true;
             // consoleClear();
             // TODO: Load next level
             // GameLevelLoader::LoadLevelFromFile("/nextlevel.bin");

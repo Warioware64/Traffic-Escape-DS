@@ -39,6 +39,10 @@ namespace Game
     // Victory state
     inline bool level_won = false;
 
+    // Timer state (counts frames, 60fps)
+    inline uint32_t timer_frames = 0;
+    inline bool timer_running = true;
+
     // Touch helper functions
     Grid2D ScreenToGrid(int px, int py);
     int FindCarAtGrid(Grid2D grid);
@@ -46,6 +50,9 @@ namespace Game
     void DrawDebugTouchZone();
     bool CheckVictory();
 
-    void Init();
+    // Current level index
+    inline int currentLevel = 0;
+
+    void Init(int level = 0);
     void Update();
 }
