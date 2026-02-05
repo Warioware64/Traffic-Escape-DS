@@ -49,12 +49,13 @@ inline bool carOccupiesCell(const CarsStates& car, Grid2D cell)
 void GameLevelLoader::LoadBGtoptext()
 {
     FILE* file;
-    
+
     void *PtrImg;
     void *PtrMap;
     void *PtrPal;
-    
+
     file = fopen("/BGs/bgtopscreentext.img.bin", "rb");
+    if (!file) return;
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_img = ftell(file);
@@ -66,6 +67,7 @@ void GameLevelLoader::LoadBGtoptext()
     fclose(file);
 
     file = fopen("/BGs/bgtopscreentext.map.bin", "rb");
+    if (!file) { free(PtrImg); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_map = ftell(file);
@@ -77,7 +79,7 @@ void GameLevelLoader::LoadBGtoptext()
     fclose(file);
     
     file = fopen("/BGs/bgtopscreentext.pal.bin", "rb");
-
+    if (!file) { free(PtrImg); free(PtrMap); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_pal = ftell(file);
@@ -108,12 +110,13 @@ void GameLevelLoader::LoadBGtoptext()
 void GameLevelLoader::LoadBGtop()
 {
     FILE* file;
-    
+
     void *PtrImg;
     void *PtrMap;
     void *PtrPal;
-    
+
     file = fopen("/BGs/TopScreen.img.bin", "rb");
+    if (!file) return;
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_img = ftell(file);
@@ -125,6 +128,7 @@ void GameLevelLoader::LoadBGtop()
     fclose(file);
 
     file = fopen("/BGs/TopScreen.map.bin", "rb");
+    if (!file) { free(PtrImg); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_map = ftell(file);
@@ -134,9 +138,9 @@ void GameLevelLoader::LoadBGtop()
     fread(PtrMap, sizeof(uint8_t), size_bytes_map, file);
 
     fclose(file);
-    
-    file = fopen("/BGs/TopScreen.pal.bin", "rb");
 
+    file = fopen("/BGs/TopScreen.pal.bin", "rb");
+    if (!file) { free(PtrImg); free(PtrMap); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_pal = ftell(file);
@@ -165,17 +169,17 @@ void GameLevelLoader::LoadBGtop()
 void GameLevelLoader::LoadBG(size_t bgID)
 {
     FILE* file;
-    
+
     void *PtrImg;
     void *PtrMap;
     void *PtrPal;
 
-    
     std::string pathImg = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".img.bin";
     std::string pathMap = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".map.bin";
     std::string pathPal = "/BGs/" + GameLevelLoader::BG_name_list.at(bgID) + ".pal.bin";
-    
+
     file = fopen(pathImg.c_str(), "rb");
+    if (!file) return;
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_img = ftell(file);
@@ -189,6 +193,7 @@ void GameLevelLoader::LoadBG(size_t bgID)
     pathImg.clear();
 
     file = fopen(pathMap.c_str(), "rb");
+    if (!file) { free(PtrImg); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_map = ftell(file);
@@ -202,7 +207,7 @@ void GameLevelLoader::LoadBG(size_t bgID)
     pathMap.clear();
 
     file = fopen(pathPal.c_str(), "rb");
-
+    if (!file) { free(PtrImg); free(PtrMap); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_pal = ftell(file);

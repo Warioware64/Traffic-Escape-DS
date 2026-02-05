@@ -1,6 +1,7 @@
 #include "Game.hpp"
 
 #include "BGFont.hpp"
+#include "SaveData.hpp"
 
 #include "PeaberryBase_charmap.h"  // Generated header
 #include "PeaberryBase_tiles_bin.h"
@@ -501,31 +502,47 @@ void Game::Update()
     uint32_t minutes = total_seconds / 60;
     uint32_t seconds = total_seconds % 60;
 
+    // Display current level
+    BGFont::Printf(11, 2, "Level %d", currentLevel + 1);
     // Display timer (MM:SS.mmm)
-    BGFont::Printf(2, 1, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
-    //consoleClear();
+    BGFont::Printf(8, 4, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
+
+    // Display best time for current level
+    char bestTimeStr[16];
+    SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
+    BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
+
     // Check for victory
+    static bool isNewRecord = false;
     if (!level_won && CheckVictory())
     {
         level_won = true;
-        // TODO: Show victory message using FontSub or sprites
-        // consoleClear();
-        // printf("\x1b[10;8H*** LEVEL COMPLETE! ***");
-        // printf("\x1b[12;6HPress START to continue");
+        timer_running = false;  // Stop the timer
+
+        // Save the time and check if it's a new record
+        isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
     }
 
-    // If level is won, wait for START to continue
+    // If level is won, display victory and wait for START
     if (level_won)
     {
+        // Display victory message
+        BGFont::Print(10, 4, "LEVEL COMPLETE!");
+
+        if (isNewRecord) {
+            BGFont::Print(10, 5, "NEW RECORD!");
+        }
+
+        BGFont::Print(6, 7, "Press START to continue");
+
         if (keys & KEY_START)
         {
             // Reset for next level (or reload current level)
             level_won = false;
             timer_frames = 0;  // Reset timer
             timer_running = true;
-            // consoleClear();
-            // TODO: Load next level
-            // GameLevelLoader::LoadLevelFromFile("/nextlevel.bin");
+            isNewRecord = false;
+            // TODO: Load next level or return to menu
         }
         // Skip normal game logic when level is won
     }

@@ -1,5 +1,6 @@
 #include "MainMenu.hpp"
 #include "BGFont.hpp"
+#include "SaveData.hpp"
 #include "PeaberryBase_charmap.h"
 #include "PeaberryBase_tiles_bin.h"
 #include "PeaberryBase_pal_bin.h"
@@ -76,6 +77,7 @@ void MainMenu::TopBG()
     void *PtrPal;
 
     file = fopen("/BGs/topIntro.img.bin", "rb");
+    if (!file) return;
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_img = ftell(file);
@@ -87,6 +89,7 @@ void MainMenu::TopBG()
     fclose(file);
 
     file = fopen("/BGs/topIntro.map.bin", "rb");
+    if (!file) { free(PtrImg); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_map = ftell(file);
@@ -98,7 +101,7 @@ void MainMenu::TopBG()
     fclose(file);
 
     file = fopen("/BGs/topIntro.pal.bin", "rb");
-
+    if (!file) { free(PtrImg); free(PtrMap); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_pal = ftell(file);
@@ -128,6 +131,7 @@ void MainMenu::SubBG()
     void *PtrPal;
 
     file = fopen("/BGs/subIntro.img.bin", "rb");
+    if (!file) return;
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_img = ftell(file);
@@ -139,6 +143,7 @@ void MainMenu::SubBG()
     fclose(file);
 
     file = fopen("/BGs/subIntro.map.bin", "rb");
+    if (!file) { free(PtrImg); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_map = ftell(file);
@@ -150,7 +155,7 @@ void MainMenu::SubBG()
     fclose(file);
 
     file = fopen("/BGs/subIntro.pal.bin", "rb");
-
+    if (!file) { free(PtrImg); free(PtrMap); return; }
     fseek(file, 0, SEEK_END);
 
     size_t size_bytes_pal = ftell(file);
@@ -228,11 +233,19 @@ void MainMenu::LoadSubScreenLevelSelect()
     // Keep screen blanked while loading (prevents magenta artifacts)
     setBrightness(3, 16);
 
+    // Clear VRAM banks first (fixes melonDS showing old intro data)
+    vramSetBankA(VRAM_A_LCD);
+    vramSetBankC(VRAM_C_LCD);
+    vramSetBankH(VRAM_H_LCD);
+    memset((void*)VRAM_A, 0, 128 * 1024);
+    memset((void*)VRAM_C, 0, 128 * 1024);
+    memset((void*)VRAM_H, 0, 32 * 1024);
+
     // Setup video mode
     videoSetMode(MODE_0_2D);
     videoSetModeSub(MODE_0_2D);
 
-    // Setup VRAM banks
+    // Setup VRAM banks for use
     vramSetBankA(VRAM_A_MAIN_BG);
     vramSetBankC(VRAM_C_SUB_BG);
     vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);
@@ -326,7 +339,12 @@ void MainMenu::DrawLevelSelectUI()
         int y = BUTTON_START_Y + row * BUTTON_HEIGHT;
 
         // Draw button with level number
-        BGFont::Printf(x, y, "[%2d]", i + 1);
+        // Show * for completed levels
+        if (SaveData::IsLevelCompleted(i)) {
+            BGFont::Printf(x, y, "*%2d*", i + 1);
+        } else {
+            BGFont::Printf(x, y, "[%2d]", i + 1);
+        }
     }
 
     // Instructions at bottom
