@@ -10,6 +10,30 @@
 
 namespace Game
 {
+    // Game state enum
+    enum class GameState {
+        PLAYING,
+        PAUSED,
+        VICTORY
+    };
+
+    // Update result - tells main loop what to do
+    enum class UpdateResult {
+        CONTINUE,       // Keep playing
+        QUIT_TO_MENU,   // Return to level selection
+        RETRY_LEVEL,    // Restart current level
+        NEXT_LEVEL      // Load next level (victory)
+    };
+
+    // Menu option for pause/victory screens
+    enum class MenuOption {
+        NONE = -1,
+        CONTINUE = 0,   // Only in pause menu
+        RETRY = 1,
+        QUIT = 2,
+        NEXT_LEVEL = 3  // Only in victory menu
+    };
+
     inline int textureID;
     inline int frame;
     inline int renderPass = 0;  // For dual 3D: 0 = first pass, 1 = second pass
@@ -21,7 +45,7 @@ namespace Game
     inline size_t idMesh;
     inline size_t idOrient;
     inline size_t idTex;
-    
+
     inline void *car;
     inline void *grid;
 
@@ -36,8 +60,10 @@ namespace Game
     inline int touch_last_y = 0;
     inline bool touch_dragging = false;
 
-    // Victory state
-    inline bool level_won = false;
+    // Game state
+    inline GameState gameState = GameState::PLAYING;
+    inline MenuOption selectedOption = MenuOption::NONE;
+    inline bool isNewRecord = false;
 
     // Timer state (counts frames, 60fps)
     inline uint32_t timer_frames = 0;
@@ -50,9 +76,18 @@ namespace Game
     void DrawDebugTouchZone();
     bool CheckVictory();
 
+    // Menu functions
+    void DrawPauseMenu();
+    void DrawVictoryMenu();
+    MenuOption HandleMenuTouch(bool isPauseMenu);
+
     // Current level index
     inline int currentLevel = 0;
 
+    // Total available levels
+    inline int totalLevels = 11;
+
     void Init(int level = 0);
-    void Update();
+    UpdateResult Update();
+    void Cleanup();  // Clean up textures and meshes when leaving level
 }

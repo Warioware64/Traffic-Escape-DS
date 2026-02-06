@@ -165,8 +165,16 @@ namespace PosVehicules
 
         free(PalPtr);
         free(TexPtr);
-
-
     };
+
+    // Clear texture cache and delete all cached textures
+    inline void ClearTextureCache()
+    {
+        for (auto& pair : textureMap)
+        {
+            glDeleteTextures(1, &pair.second);
+        }
+        textureMap.clear();
+    }
 }
 

@@ -359,6 +359,17 @@ void Game::Init(int level)
     // Store current level
     currentLevel = level;
 
+    // Reset game state
+    gameState = GameState::PLAYING;
+    timer_frames = 0;
+    timer_running = true;
+    isNewRecord = false;
+    selectedOption = MenuOption::NONE;
+
+    // Reset touch state
+    touch_selected_car = -1;
+    touch_dragging = false;
+
     idMesh = 0;
     idOrient = 0;
     idTex = 0;
@@ -482,170 +493,345 @@ void Game::Init(int level)
     }
 }
 
-void Game::Update()
+void Game::Cleanup()
+{
+    // Delete all car textures and free meshes
+    for (auto& car : GameLevelLoader::lev_data)
+    {
+        if (car.texGLptr != 0)
+        {
+            car.texGLptr = 0;
+        }
+        if (car.ptrMesh != nullptr)
+        {
+            free(car.ptrMesh);
+            car.ptrMesh = nullptr;
+        }
+        car.true_car = 0;
+    }
+
+    // Clear the texture cache (deletes all GL textures)
+    PosVehicules::ClearTextureCache();
+
+    // Free grid mesh if allocated
+    if (grid != nullptr)
+    {
+        free(grid);
+        grid = nullptr;
+    }
+
+    // Delete test texture if used
+    if (textureID != 0)
+    {
+        glDeleteTextures(1, &textureID);
+        textureID = 0;
+    }
+
+    // Free test car mesh
+    if (car != nullptr)
+    {
+        free(car);
+        car = nullptr;
+    }
+}
+
+// Menu button positions (sub screen coordinates)
+constexpr int MENU_BUTTON_X = 64;
+constexpr int MENU_BUTTON_WIDTH = 128;
+constexpr int MENU_BUTTON_HEIGHT = 24;
+constexpr int MENU_BUTTON_SPACING = 32;
+
+void Game::DrawPauseMenu()
+{
+    lcdMainOnTop();
+    BGFont::Clear();
+    BGFont::Print(11, 3, "PAUSED");
+
+    // Draw menu options as text buttons
+    BGFont::Print(11, 7, "Continue");
+    BGFont::Print(12, 9, "Retry");
+    BGFont::Print(12, 11, "Quit");
+}
+
+void Game::DrawVictoryMenu()
+{
+    BGFont::Clear();
+    BGFont::Print(8, 2, "LEVEL COMPLETE!");
+
+    if (isNewRecord) {
+        BGFont::Print(9, 4, "NEW RECORD!");
+    }
+
+    // Show final time
+    uint32_t total_seconds = timer_frames / 60;
+    uint32_t remaining_frames = timer_frames % 60;
+    uint32_t milliseconds = (remaining_frames * 1000) / 60;
+    uint32_t minutes = total_seconds / 60;
+    uint32_t seconds = total_seconds % 60;
+    BGFont::Printf(7, 6, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
+
+    // Draw menu options
+    if (currentLevel < totalLevels - 1) {
+        BGFont::Print(9, 9, "Next Level");
+    }
+    BGFont::Print(12, 11, "Retry");
+    BGFont::Print(12, 13, "Quit");
+}
+
+Game::MenuOption Game::HandleMenuTouch(bool isPauseMenu)
+{
+    touchPosition touch;
+
+    if (keysDown() & KEY_TOUCH)
+    {
+        touchRead(&touch);
+
+        // Convert touch Y to text row (16 pixels per row - matches BGFont tile height)
+        int touchRow = touch.py / 16;
+
+        if (isPauseMenu)
+        {
+            // Pause menu: Continue at row 7, Retry at row 9, Quit at row 11
+            if (touchRow >= 7 && touchRow <= 8) return MenuOption::CONTINUE;
+            if (touchRow >= 9 && touchRow <= 10) return MenuOption::RETRY;
+            if (touchRow >= 11) return MenuOption::QUIT;
+        }
+        else
+        {
+            // Victory menu: Next Level at row 9, Retry at row 11, Quit at row 13
+            if (currentLevel < totalLevels - 1)
+            {
+                if (touchRow >= 9 && touchRow <= 10) return MenuOption::NEXT_LEVEL;
+                if (touchRow >= 11 && touchRow <= 12) return MenuOption::RETRY;
+                if (touchRow >= 13) return MenuOption::QUIT;
+            }
+            else
+            {
+                // No next level available - Retry at row 11, Quit at row 13
+                if (touchRow >= 11 && touchRow <= 12) return MenuOption::RETRY;
+                if (touchRow >= 13) return MenuOption::QUIT;
+            }
+        }
+    }
+
+    return MenuOption::NONE;
+}
+
+Game::UpdateResult Game::Update()
 {
     scanKeys();
-    
-    uint16_t keys = keysUp();
+
+    uint16_t keys = keysDown();
+    uint16_t keysReleased = keysUp();
     bool change = false;
     bgUpdate();
 
-    // Update timer (60fps)
-    if (timer_running && !level_won) {
-        timer_frames++;
-    }
+    // Flag to prevent same-frame pause toggle
+    static bool pauseInputConsumed = false;
 
-    // Calculate minutes, seconds, and milliseconds from frames (60fps)
-    uint32_t total_seconds = timer_frames / 60;
-    uint32_t remaining_frames = timer_frames % 60;
-    uint32_t milliseconds = (remaining_frames * 1000) / 60;  // Convert frames to ms
-    uint32_t minutes = total_seconds / 60;
-    uint32_t seconds = total_seconds % 60;
-
-    // Display current level
-    BGFont::Printf(11, 2, "Level %d", currentLevel + 1);
-    // Display timer (MM:SS.mmm)
-    BGFont::Printf(8, 4, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
-
-    // Display best time for current level
-    char bestTimeStr[16];
-    SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
-    BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
-
-    // Check for victory
-    static bool isNewRecord = false;
-    if (!level_won && CheckVictory())
+    // State machine for game states
+    switch (gameState)
     {
-        level_won = true;
-        timer_running = false;  // Stop the timer
-
-        // Save the time and check if it's a new record
-        isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
-    }
-
-    // If level is won, display victory and wait for START
-    if (level_won)
-    {
-        // Display victory message
-        BGFont::Print(10, 4, "LEVEL COMPLETE!");
-
-        if (isNewRecord) {
-            BGFont::Print(10, 5, "NEW RECORD!");
-        }
-
-        BGFont::Print(6, 7, "Press START to continue");
-
-        if (keys & KEY_START)
+        case GameState::PAUSED:
         {
-            // Reset for next level (or reload current level)
-            level_won = false;
-            timer_frames = 0;  // Reset timer
-            timer_running = true;
-            isNewRecord = false;
-            // TODO: Load next level or return to menu
-        }
-        // Skip normal game logic when level is won
-    }
-    else
-    {
-        // Normal game logic - only when level is not won
-        Game::HandleTouch();
+            DrawPauseMenu();
 
-        // Get max position for current car (4 for 2-cell, 3 for 3-cell)
-        uint8_t editCarMaxPos = 6 - PosVehicules::GetCarSize(GameLevelLoader::lev_data.at(edit_car).carID);
+            // Handle touch input for menu
+            MenuOption option = HandleMenuTouch(true);
 
-        if (keys & KEY_LEFT)
-        {
-            if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+            // Check for START press to resume (with one-frame delay to prevent instant toggle)
+            if (!pauseInputConsumed && (keys & KEY_START))
             {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
-                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
-                {
-                    GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
-                }
+                gameState = GameState::PLAYING;
+                timer_running = true;
+                BGFont::Clear();
+                pauseInputConsumed = true;
             }
+            else if (option == MenuOption::CONTINUE)
+            {
+                gameState = GameState::PLAYING;
+                timer_running = true;
+                lcdMainOnBottom();
+                BGFont::Clear();
+            }
+            else if (option == MenuOption::RETRY)
+            {
+                Cleanup();
+                return UpdateResult::RETRY_LEVEL;
+            }
+            else if (option == MenuOption::QUIT)
+            {
+                Cleanup();
+                return UpdateResult::QUIT_TO_MENU;
+            }
+
+            // Clear consumed flag when START is released
+            if (!(keysHeld() & KEY_START))
+            {
+                pauseInputConsumed = false;
+            }
+            break;
         }
 
-        if (keys & KEY_RIGHT)
+        case GameState::VICTORY:
         {
-            if (GameLevelLoader::lev_data.at(edit_car).grid2d.x < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
+            DrawVictoryMenu();
+
+            // Handle touch input for menu
+            MenuOption option = HandleMenuTouch(false);
+            if (option == MenuOption::NEXT_LEVEL)
             {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
-                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                Cleanup();
+                return UpdateResult::NEXT_LEVEL;
+            }
+            else if (option == MenuOption::RETRY)
+            {
+                Cleanup();
+                return UpdateResult::RETRY_LEVEL;
+            }
+            else if (option == MenuOption::QUIT)
+            {
+                Cleanup();
+                return UpdateResult::QUIT_TO_MENU;
+            }
+            break;
+        }
+
+        case GameState::PLAYING:
+        default:
+        {
+            // Update timer (60fps)
+            if (timer_running) {
+                timer_frames++;
+            }
+
+            // Calculate minutes, seconds, and milliseconds from frames (60fps)
+            uint32_t total_seconds = timer_frames / 60;
+            uint32_t remaining_frames = timer_frames % 60;
+            uint32_t milliseconds = (remaining_frames * 1000) / 60;
+            uint32_t minutes = total_seconds / 60;
+            uint32_t seconds = total_seconds % 60;
+
+            // Display current level
+            BGFont::Printf(11, 2, "Level %d", currentLevel + 1);
+            // Display timer (MM:SS.mmm)
+            BGFont::Printf(8, 4, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
+
+            // Display best time for current level
+            char bestTimeStr[16];
+            SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
+            BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
+
+            // Check for victory
+            if (CheckVictory())
+            {
+                gameState = GameState::VICTORY;
+                timer_running = false;
+                isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
+                break;
+            }
+
+            // Check for START to pause (with flag to prevent instant toggle)
+            if (!pauseInputConsumed && (keys & KEY_START))
+            {
+                gameState = GameState::PAUSED;
+                timer_running = false;
+                pauseInputConsumed = true;
+                break;
+            }
+
+            // Clear consumed flag when START is released
+            if (!(keysHeld() & KEY_START))
+            {
+                pauseInputConsumed = false;
+            }
+
+            // Normal game logic
+            Game::HandleTouch();
+
+            // Get max position for current car (4 for 2-cell, 3 for 3-cell)
+            uint8_t editCarMaxPos = 6 - PosVehicules::GetCarSize(GameLevelLoader::lev_data.at(edit_car).carID);
+
+            if (keysReleased & KEY_LEFT)
+            {
+                if (GameLevelLoader::lev_data.at(edit_car).grid2d.x >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
                 {
                     GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+                    if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                    {
+                        GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+                    }
                 }
             }
-        }
 
-        if (keys & KEY_UP)
-        {
-            if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+            if (keysReleased & KEY_RIGHT)
             {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
-                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                if (GameLevelLoader::lev_data.at(edit_car).grid2d.x < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::LEFT_RIGHT)
                 {
-                    GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.x += 1;
+                    if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                    {
+                        GameLevelLoader::lev_data.at(edit_car).grid2d.x -= 1;
+                    }
                 }
             }
-        }
 
-        if (keys & KEY_DOWN)
-        {
-            if (GameLevelLoader::lev_data.at(edit_car).grid2d.y < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+            if (keysReleased & KEY_UP)
             {
-                GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
-                if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                if (GameLevelLoader::lev_data.at(edit_car).grid2d.y >= 1 && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
                 {
                     GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+                    if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                    {
+                        GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+                    }
                 }
             }
-        }
-    } // End of else block (normal game logic)
 
-    if (keys & KEY_A)
+            if (keysReleased & KEY_DOWN)
+            {
+                if (GameLevelLoader::lev_data.at(edit_car).grid2d.y < editCarMaxPos && PosVehicules::OrientationRULESpreset.at(GameLevelLoader::lev_data.at(edit_car).orientation) == OrientationRULES::TOP_UP)
+                {
+                    GameLevelLoader::lev_data.at(edit_car).grid2d.y += 1;
+                    if (GameLevelLoader::CollisionCheck(GameLevelLoader::lev_data.at(edit_car).grid2d, edit_car))
+                    {
+                        GameLevelLoader::lev_data.at(edit_car).grid2d.y -= 1;
+                    }
+                }
+            }
+            break;
+        }
+    } // End of switch (gameState)
+
+    if (keysReleased & KEY_A)
     {
         if (idMesh != PosVehicules::CarNames.size())
             idMesh++;
         change = true;
     }
 
-    if (keys & KEY_B)
+    if (keysReleased & KEY_B)
     {
         if (idMesh != 0)
             idMesh--;
         change = true;
     }
 
-    if (keys & KEY_X)
+    if (keysReleased & KEY_X)
     {
         if (idOrient != 3)
             idOrient++;
         change = true;
     }
 
-    if (keys & KEY_Y)
+    if (keysReleased & KEY_Y)
     {
         if (idOrient != 0)
             idOrient--;
         change = true;
     }
-    /*
-    if (keys & KEY_R)
-    {
-        if (idTex != PosVehicules::TextureNames.size())
-            idTex++;
-        change = true;
-    }
 
-    if (keys & KEY_L)
-    {
-        if (idTex != 0)
-            idTex--;
-        change = true;
-    }*/
-
-    if (keys & KEY_L)
+    if (keysReleased & KEY_L)
     {
         edit_car++;
         if (GameLevelLoader::lev_data.at(edit_car).true_car == 0)
@@ -653,8 +839,8 @@ void Game::Update()
             edit_car = 0;
         }
     }
-    
-    if (keys & KEY_R)
+
+    if (keysReleased & KEY_R)
     {
         if (edit_car != 0)
             edit_car--;
@@ -731,4 +917,6 @@ void Game::Update()
 
     glFlush(0);
     swiWaitForVBlank();
+
+    return UpdateResult::CONTINUE;
 }
