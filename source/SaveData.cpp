@@ -106,11 +106,19 @@ bool SetBestTime(int level, uint32_t timeFrames)
     // Check if this is a new record (lower time is better)
     if (currentBest == TIME_NOT_SET || timeFrames < currentBest) {
         saveData.bestTimes[level] = timeFrames;
-        Save();  // Persist to disk
-        return true;  // New record!
+        dirty = true;  // Mark for deferred disk write
+        return true;   // New record!
     }
 
     return false;  // Not a new record
+}
+
+void Flush()
+{
+    if (dirty) {
+        Save();
+        dirty = false;
+    }
 }
 
 bool IsLevelCompleted(int level)

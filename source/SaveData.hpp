@@ -28,6 +28,9 @@ namespace SaveData
     // Whether FAT is available for saving
     inline bool fatAvailable = false;
 
+    // Dirty flag - save data changed in memory but not yet written to disk
+    inline bool dirty = false;
+
     // Initialize save system (calls fatInitDefault)
     void Init();
 
@@ -36,6 +39,9 @@ namespace SaveData
 
     // Save current data to disk
     bool Save();
+
+    // Flush dirty data to disk (call at safe transition points)
+    void Flush();
 
     // Get best time for a level (0-based index)
     // Returns TIME_NOT_SET if level not completed

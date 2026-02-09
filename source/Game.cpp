@@ -262,9 +262,13 @@ void Game::HandleTouch()
                 if (GameLevelLoader::CollisionCheck(car.grid2d, touch_selected_car))
                 {
                     car.grid2d.x -= 1;
+                    fprintf(stderr, "[TOUCH] car%d drag RIGHT blocked by collision at x=%d\n",
+                            touch_selected_car, car.grid2d.x + 1);
                 }
                 else
                 {
+                    fprintf(stderr, "[TOUCH] car%d moved RIGHT to x=%d (maxPos=%d)\n",
+                            touch_selected_car, car.grid2d.x, maxPos);
                     touch_last_x = touch.px;
                     touch_last_y = touch.py;
                 }
@@ -344,6 +348,15 @@ bool Game::CheckVictory()
     uint8_t carSize = PosVehicules::GetCarSize(playerCar.carID);
     uint8_t exitPosition = 7 - carSize;
 
+    // Only print when position changes to avoid spam
+    static uint8_t lastX = 255;
+    if (playerCar.grid2d.x != lastX)
+    {
+        fprintf(stderr, "[VICTORY?] car0 x=%d exitPos=%d carSize=%d orientation=%zu\n",
+                playerCar.grid2d.x, exitPosition, carSize, playerCar.orientation);
+        lastX = playerCar.grid2d.x;
+    }
+
     // Victory when car reaches the exit position
     return playerCar.grid2d.x >= exitPosition;
 }
@@ -353,8 +366,9 @@ void Game::Init(int level)
     // Blank screen during loading (prevents magenta artifacts)
     setBrightness(3, 16);
 
-    // Console disabled - sub screen used for background
-    // consoleDemoInit();
+    // Debug console - outputs to emulator debug window (melonDS terminal / no$gba)
+    consoleDebugInit(DebugDevice_NOCASH);
+    fprintf(stderr, "[INIT] Game::Init level=%d\n", level);
 
     // Store current level
     currentLevel = level;
@@ -495,6 +509,9 @@ void Game::Init(int level)
 
 void Game::Cleanup()
 {
+    // Flush any pending save data to disk
+    SaveData::Flush();
+
     // Delete all car textures and free meshes
     for (auto& car : GameLevelLoader::lev_data)
     {
@@ -555,6 +572,7 @@ void Game::DrawPauseMenu()
 
 void Game::DrawVictoryMenu()
 {
+    lcdMainOnTop();
     BGFont::Clear();
     BGFont::Print(8, 2, "LEVEL COMPLETE!");
 
@@ -619,6 +637,7 @@ Game::MenuOption Game::HandleMenuTouch(bool isPauseMenu)
 
 Game::UpdateResult Game::Update()
 {
+    fprintf(stderr, "[UPDATE] Enter gameState=%d\n", (int)gameState);
     scanKeys();
 
     uint16_t keys = keysDown();
@@ -630,6 +649,17 @@ Game::UpdateResult Game::Update()
     static bool pauseInputConsumed = false;
 
     // State machine for game states
+    static int dbg_frame = 0;
+    dbg_frame++;
+    if (dbg_frame % 60 == 0) // Print once per second to avoid spam
+    {
+        fprintf(stderr, "[STATE] frame=%d gameState=%d timer=%lu car0.x=%d car0.y=%d car0.active=%d\n",
+                dbg_frame, (int)gameState, (unsigned long)timer_frames,
+                GameLevelLoader::lev_data.at(0).grid2d.x,
+                GameLevelLoader::lev_data.at(0).grid2d.y,
+                GameLevelLoader::lev_data.at(0).true_car);
+    }
+
     switch (gameState)
     {
         case GameState::PAUSED:
@@ -675,10 +705,14 @@ Game::UpdateResult Game::Update()
 
         case GameState::VICTORY:
         {
+            fprintf(stderr, "[VICTORY MENU] Drawing victory menu\n");
             DrawVictoryMenu();
 
-            // Handle touch input for menu
             MenuOption option = HandleMenuTouch(false);
+            if (option != MenuOption::NONE)
+            {
+                fprintf(stderr, "[VICTORY MENU] Touch option=%d\n", (int)option);
+            }
             if (option == MenuOption::NEXT_LEVEL)
             {
                 Cleanup();
@@ -722,9 +756,11 @@ Game::UpdateResult Game::Update()
             SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
             BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
 
-            // Check for victory
+            // Detect victory
             if (CheckVictory())
             {
+                fprintf(stderr, "[VICTORY!] Triggered! car0.x=%d timer=%lu\n",
+                        GameLevelLoader::lev_data.at(0).grid2d.x, (unsigned long)timer_frames);
                 gameState = GameState::VICTORY;
                 timer_running = false;
                 isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
@@ -857,6 +893,7 @@ Game::UpdateResult Game::Update()
     //glPolyFmt(POLY_ALPHA(31) | POLY_CULL_BACK | POLY_FORMAT_LIGHT0);
 
     
+    fprintf(stderr, "[RENDER] Start 3D render gameState=%d\n", (int)gameState);
     // Render grid
     glPushMatrix();
     glTranslatef(-1.25, -0.25, 0.5);
@@ -915,8 +952,11 @@ Game::UpdateResult Game::Update()
     printf("%d Polygon\n", GFX_POLYGON_RAM_USAGE);
     */
 
+    fprintf(stderr, "[RENDER] Before glFlush\n");
     glFlush(0);
+    fprintf(stderr, "[RENDER] After glFlush, before VBlank\n");
     swiWaitForVBlank();
+    fprintf(stderr, "[RENDER] After VBlank\n");
 
     return UpdateResult::CONTINUE;
 }
