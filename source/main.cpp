@@ -5,6 +5,7 @@
 #include "Game.hpp"
 #include "MainMenu.hpp"
 #include "SaveData.hpp"
+#include "MusicStream.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -13,6 +14,9 @@ int main(int argc, char *argv[])
 
     // Show intro sequence (initializes nitroFS internally)
     MainMenu::Intro();
+
+    // Start background music (must be after nitroFSInit in Intro)
+    MusicStream::Init("nitro:/audio/blossom.wav");
 
     while (true)
     {
@@ -31,6 +35,9 @@ int main(int argc, char *argv[])
             while (playingLevel)
             {
                 Game::UpdateResult result = Game::Update();
+
+                // Keep music streaming buffer filled
+                MusicStream::Update();
 
                 switch (result)
                 {

@@ -1,6 +1,7 @@
 #include "MainMenu.hpp"
 #include "BGFont.hpp"
 #include "SaveData.hpp"
+#include "MusicStream.hpp"
 #include "PeaberryBase_charmap.h"
 #include "PeaberryBase_tiles_bin.h"
 #include "PeaberryBase_pal_bin.h"
@@ -392,6 +393,7 @@ int MainMenu::ShowLevelSelect()
     while (true) {
         swiWaitForVBlank();
         bgUpdate();
+        MusicStream::Update();
 
         int selected = HandleLevelSelectTouch();
         if (selected >= 0) {
