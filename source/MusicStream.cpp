@@ -1,4 +1,5 @@
 #include "MusicStream.hpp"
+#include "soundbank.h"
 
 #include <filesystem.h>
 
@@ -140,6 +141,14 @@ static mm_stream_formats getMMStreamType(uint16_t numChannels, uint16_t bitsPerS
 
 bool Init(const char* wavPath)
 {
+    // Initialize maxmod with soundbank from nitroFS (for SFX)
+    mmInitDefault("nitro:/soundbank.bin");
+
+    // Load sound effects
+    mmLoadEffect(SFX_SCI_FI_DESELECT);
+    mmLoadEffect(SFX_XYLOPHONE_LEVEL_COMPLETE);
+
+    // Open WAV file for streaming music
     wavFile = fopen(wavPath, "rb");
     if (wavFile == nullptr)
         return false;
@@ -164,14 +173,6 @@ bool Init(const char* wavPath)
     // Pre-fill the circular buffer before starting playback
     fillBuffer(true);
 
-    // Initialize maxmod with no soundbank (streaming only)
-    mm_ds_system mmSys = {};
-    mmSys.mod_count = 0;
-    mmSys.samp_count = 0;
-    mmSys.mem_bank = 0;
-    mmSys.fifo_channel = FIFO_MAXMOD;
-    mmInit(&mmSys);
-
     // Open the stream
     mm_stream stream = {};
     stream.sampling_rate = header.sampleRate;
@@ -192,6 +193,11 @@ void Update()
         return;
 
     fillBuffer(false);
+}
+
+void PlaySFX(mm_word sfxID)
+{
+    mmEffect(sfxID);
 }
 
 void Close()

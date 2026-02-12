@@ -2,6 +2,8 @@
 
 #include "BGFont.hpp"
 #include "SaveData.hpp"
+#include "MusicStream.hpp"
+#include "soundbank.h"
 
 #include "PeaberryBase_charmap.h"  // Generated header
 #include "PeaberryBase_tiles_bin.h"
@@ -669,6 +671,9 @@ Game::UpdateResult Game::Update()
             // Handle touch input for menu
             MenuOption option = HandleMenuTouch(true);
 
+            if (option != MenuOption::NONE)
+                MusicStream::PlaySFX(SFX_SCI_FI_DESELECT);
+
             // Check for START press to resume (with one-frame delay to prevent instant toggle)
             if (!pauseInputConsumed && (keys & KEY_START))
             {
@@ -711,6 +716,7 @@ Game::UpdateResult Game::Update()
             MenuOption option = HandleMenuTouch(false);
             if (option != MenuOption::NONE)
             {
+                MusicStream::PlaySFX(SFX_SCI_FI_DESELECT);
                 fprintf(stderr, "[VICTORY MENU] Touch option=%d\n", (int)option);
             }
             if (option == MenuOption::NEXT_LEVEL)
@@ -761,6 +767,7 @@ Game::UpdateResult Game::Update()
             {
                 fprintf(stderr, "[VICTORY!] Triggered! car0.x=%d timer=%lu\n",
                         GameLevelLoader::lev_data.at(0).grid2d.x, (unsigned long)timer_frames);
+                MusicStream::PlaySFX(SFX_XYLOPHONE_LEVEL_COMPLETE);
                 gameState = GameState::VICTORY;
                 timer_running = false;
                 isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);

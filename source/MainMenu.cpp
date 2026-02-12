@@ -2,6 +2,7 @@
 #include "BGFont.hpp"
 #include "SaveData.hpp"
 #include "MusicStream.hpp"
+#include "soundbank.h"
 #include "PeaberryBase_charmap.h"
 #include "PeaberryBase_tiles_bin.h"
 #include "PeaberryBase_pal_bin.h"
@@ -225,8 +226,8 @@ void MainMenu::LoadTopScreenBG()
     topBgId = bgInit(1, BgType_Text8bpp, BgSize_T_256x256, 0, 1);
     bgSetPriority(topBgId, 2);
 
-    LoadBGFromFile("/BGs/TopScreen.img.bin", "/BGs/TopScreen.map.bin",
-                   "/BGs/TopScreen.pal.bin", topBgId, BG_PALETTE);
+    LoadBGFromFile("/BGs/TopScreenMain.img.bin", "/BGs/TopScreenMain.map.bin",
+                   "/BGs/TopScreenMain.pal.bin", topBgId, BG_PALETTE);
 }
 
 void MainMenu::LoadSubScreenLevelSelect()
@@ -397,6 +398,7 @@ int MainMenu::ShowLevelSelect()
 
         int selected = HandleLevelSelectTouch();
         if (selected >= 0) {
+            MusicStream::PlaySFX(SFX_SCI_FI_DESELECT);
             selectedLevel = selected;
 
             // Visual feedback - highlight selection briefly

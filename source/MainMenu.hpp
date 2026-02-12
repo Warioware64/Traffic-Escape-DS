@@ -20,7 +20,7 @@ namespace MainMenu
 
     // Total number of available levels
     constexpr int MAX_LEVELS = 20;
-    inline int availableLevels = 11;  // Levels 1-11 exist in /Levels/
+    inline int availableLevels = 20;  // Levels 1-11 exist in /Levels/
 
     // Initialize the menu system
     void Init();

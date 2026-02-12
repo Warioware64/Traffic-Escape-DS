@@ -7,13 +7,16 @@
 
 namespace MusicStream
 {
-    // Initialize maxmod and open WAV file for streaming
+    // Initialize maxmod (soundbank + streaming) and open WAV file
     // Must be called after nitroFSInit()
     bool Init(const char* wavPath);
 
     // Fill the circular buffer from the WAV file
     // Call this every frame from the main loop
     void Update();
+
+    // Play a sound effect by its soundbank ID
+    void PlaySFX(mm_word sfxID);
 
     // Stop streaming and close the WAV file
     void Close();

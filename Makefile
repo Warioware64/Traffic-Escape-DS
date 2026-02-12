@@ -6,14 +6,14 @@ NAME		:= Traffic_Escape_DS
 GAME_TITLE	:= Traffic Escape DS 
 GAME_SUBTITLE	:= Resolves all your traffic problems!
 GAME_AUTHOR	:= https://github.com/Warioware64
-
+GAME_ICON	:= icon.png
 
 NITROFSDIR	:= nitrofiles
 
 
 # Source code paths
 
-#AUDIODIRS	:= audio
+AUDIODIRS	:= audio
 BINDIRS 	:= bin
 #GFXDIRS		:= graphics
 # Libraries
