@@ -95,8 +95,7 @@ This game uses the following assets from talented creators on itch.io:
 |-------|---------|------|
 | PSX Style Cars (3D vehicle models) | **GGBot** | [ggbot.itch.io/psx-style-cars](https://ggbot.itch.io/psx-style-cars) |
 | 3D Isometric Font | **GGBotNet** | [ggbot.itch.io](https://ggbot.itch.io/) |
-| Button Pack | **Screaming Brain Studios** | [screamingbrainstudios.itch.io](https://screamingbrainstudios.itch.io/) |
-| Retro Pixel Ribbons, Banners and Frames | **BDragon1727** | [bdragon1727.itch.io](https://bdragon1727.itch.io/) |
+| Backgrounds (sky, abstract) | **Screaming Brain Studios** | [screamingbrainstudios.itch.io](https://screamingbrainstudios.itch.io/) |
 | Music | **ChaJa Makes Music** | [chajamakesmusic.itch.io](https://chajamakesmusic.itch.io/) |
 | Sound Effects (400+ Sounds Pack) | **Ci** | [ci.itch.io/400-sounds-pack](https://ci.itch.io/400-sounds-pack) |
 
