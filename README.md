@@ -87,6 +87,21 @@ nitrofiles/          ROM filesystem (levels, backgrounds, fonts, music)
 bin/                 Compiled binary assets (meshes, textures)
 ```
 
+## Assets Credits
+
+This game uses the following assets from talented creators on itch.io:
+
+| Asset | Creator | Link |
+|-------|---------|------|
+| PSX Style Cars (3D vehicle models) | **GGBot** | [ggbot.itch.io/psx-style-cars](https://ggbot.itch.io/psx-style-cars) |
+| 3D Isometric Font | **GGBotNet** | [ggbot.itch.io](https://ggbot.itch.io/) |
+| Button Pack | **Screaming Brain Studios** | [screamingbrainstudios.itch.io](https://screamingbrainstudios.itch.io/) |
+| Retro Pixel Ribbons, Banners and Frames | **BDragon1727** | [bdragon1727.itch.io](https://bdragon1727.itch.io/) |
+| Music | **ChaJa Makes Music** | [chajamakesmusic.itch.io](https://chajamakesmusic.itch.io/) |
+| Sound Effects (400+ Sounds Pack) | **Ci** | [ci.itch.io/400-sounds-pack](https://ci.itch.io/400-sounds-pack) |
+
+> The 3D Isometric font is licensed under the [SIL Open Font License 1.1](assetsMake/3DIsometric_Font_1_14/License.txt).
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
