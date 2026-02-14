@@ -147,6 +147,8 @@ bool Init(const char* wavPath)
     // Load sound effects
     mmLoadEffect(SFX_SCI_FI_DESELECT);
     mmLoadEffect(SFX_XYLOPHONE_LEVEL_COMPLETE);
+    mmLoadEffect(SFX_TOGGLE_ON);
+    mmLoadEffect(SFX_CLICK_DOUBLE_OFF);
 
     // Open WAV file for streaming music
     wavFile = fopen(wavPath, "rb");

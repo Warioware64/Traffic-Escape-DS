@@ -227,6 +227,7 @@ void Game::HandleTouch()
         // Update edit_car to show selection highlight
         if (touch_selected_car >= 0)
         {
+            MusicStream::PlaySFX(SFX_TOGGLE_ON);
             edit_car = touch_selected_car;
         }
     }
@@ -269,6 +270,7 @@ void Game::HandleTouch()
                 }
                 else
                 {
+                    MusicStream::PlaySFX(SFX_CLICK_DOUBLE_OFF);
                     fprintf(stderr, "[TOUCH] car%d moved RIGHT to x=%d (maxPos=%d)\n",
                             touch_selected_car, car.grid2d.x, maxPos);
                     touch_last_x = touch.px;
@@ -285,6 +287,7 @@ void Game::HandleTouch()
                 }
                 else
                 {
+                    MusicStream::PlaySFX(SFX_CLICK_DOUBLE_OFF);
                     touch_last_x = touch.px;
                     touch_last_y = touch.py;
                 }
@@ -303,6 +306,7 @@ void Game::HandleTouch()
                 }
                 else
                 {
+                    MusicStream::PlaySFX(SFX_CLICK_DOUBLE_OFF);
                     touch_last_x = touch.px;
                     touch_last_y = touch.py;
                 }
@@ -317,6 +321,7 @@ void Game::HandleTouch()
                 }
                 else
                 {
+                    MusicStream::PlaySFX(SFX_CLICK_DOUBLE_OFF);
                     touch_last_x = touch.px;
                     touch_last_y = touch.py;
                 }
