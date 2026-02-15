@@ -105,6 +105,10 @@ This game uses the following assets from talented creators on itch.io:
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
+## Built With
+
+This project was developed with the assistance of [Claude Code](https://claude.ai/code) (Anthropic's AI coding agent) for code architecture, debugging, and implementation support.
+
 ## Author
 
 [Warioware64](https://github.com/Warioware64)
