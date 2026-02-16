@@ -22,6 +22,10 @@ namespace MainMenu
     constexpr int MAX_LEVELS = 20;
     inline int availableLevels = 20;  // Levels 1-11 exist in /Levels/
 
+    // Sentinel return values for special menu options
+    constexpr int SELECT_CUSTOM_LEVELS = -2;
+    constexpr int SELECT_ONLINE_LEVELS = -3;
+
     // Initialize the menu system
     void Init();
 

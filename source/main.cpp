@@ -6,6 +6,46 @@
 #include "MainMenu.hpp"
 #include "SaveData.hpp"
 #include "MusicStream.hpp"
+#include "CustomLevelBrowser.hpp"
+#include "OnlineLevelBrowser.hpp"
+#include "BGFont.hpp"
+
+// Play a custom level game loop (retry supported, quit returns to browser)
+static void PlayCustomLevel(const char* jsonPath)
+{
+    bool inGame = true;
+    while (inGame)
+    {
+        Game::InitCustom(jsonPath);
+
+        bool playingLevel = true;
+        while (playingLevel)
+        {
+            Game::UpdateResult result = Game::Update();
+            MusicStream::Update();
+
+            switch (result)
+            {
+                case Game::UpdateResult::CONTINUE:
+                    break;
+                case Game::UpdateResult::QUIT_TO_MENU:
+                    playingLevel = false;
+                    inGame = false;
+                    break;
+                case Game::UpdateResult::RETRY_LEVEL:
+                    playingLevel = false;
+                    // inGame stays true -> re-init same custom level
+                    break;
+                case Game::UpdateResult::NEXT_LEVEL:
+                    // No next level for custom, return to browser
+                    playingLevel = false;
+                    inGame = false;
+                    break;
+            }
+        }
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -23,7 +63,48 @@ int main(int argc, char *argv[])
         // Show level selection and get selected level
         int selectedLevel = MainMenu::ShowLevelSelect();
 
-        // Game loop for current level
+        // Handle custom levels
+        if (selectedLevel == MainMenu::SELECT_CUSTOM_LEVELS)
+        {
+            // Custom level browser loop
+            bool browsing = true;
+            while (browsing)
+            {
+                CustomLevelBrowser::Result result = CustomLevelBrowser::Show();
+                if (result == CustomLevelBrowser::Result::PLAY)
+                {
+                    PlayCustomLevel(CustomLevelBrowser::GetSelectedPath());
+                    // After playing, return to browser
+                }
+                else
+                {
+                    browsing = false;
+                }
+            }
+            continue;  // Return to main level select
+        }
+
+        // Handle online levels
+        if (selectedLevel == MainMenu::SELECT_ONLINE_LEVELS)
+        {
+            bool browsing = true;
+            while (browsing)
+            {
+                OnlineLevelBrowser::Result result = OnlineLevelBrowser::Show();
+                if (result == OnlineLevelBrowser::Result::PLAY)
+                {
+                    PlayCustomLevel(OnlineLevelBrowser::GetSelectedPath());
+                }
+                else
+                {
+                    browsing = false;
+                }
+            }
+            continue;  // Return to main level select
+        }
+
+        // Normal game loop for built-in level
+        Game::isCustomLevel = false;
         bool inGame = true;
         while (inGame)
         {

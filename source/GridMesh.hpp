@@ -10,7 +10,7 @@
 namespace GridMesh
 {
 
-    void LoadGridMesh(void **ptr)
+    inline void LoadGridMesh(void **ptr)
     {
         FILE* file;
 

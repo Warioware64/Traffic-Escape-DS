@@ -101,6 +101,14 @@ This game uses the following assets from talented creators on itch.io:
 
 > The 3D Isometric font is licensed under the [SIL Open Font License 1.1](assetsMake/3DIsometric_Font_1_14/License.txt).
 
+## Community Levels
+
+Browse and play community-created levels directly from your DS/DSi via WiFi! The online level browser fetches levels from the community repository:
+
+**[Community-Levels-Traffic-Escape-DS](https://github.com/Warioware64/Community-Levels-Traffic-Escape-DS)**
+
+You can also load custom levels offline by placing `.json` level files in `sd:/TE_LEVELS/` on your SD card.
+
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.

@@ -12,6 +12,8 @@
 #include "GridMesh.hpp"
 #include "GameLevelLoader.hpp"
 
+#include <cstring>
+
 // Screen bounds for the grid (trapezoid shape due to perspective)
 // Top edge of grid (further from camera, appears narrower)
 constexpr int GRID_TOP_LEFT = 90;
@@ -405,10 +407,17 @@ void Game::Init(int level)
     videoSetMode(MODE_0_3D);
     videoSetModeSub(MODE_0_2D);
 
-    vramSetBankA(VRAM_A_TEXTURE);      
-    vramSetBankB(VRAM_B_TEXTURE);     
-    vramSetBankC(VRAM_C_SUB_BG);  
-    vramSetBankE(VRAM_E_MAIN_BG);  
+    // VRAM layout (validated against GBATEK):
+    // Bank A (128K): 3D texture slot 0 (needed for tex4x4 compressed)
+    // Bank B (128K): 3D texture slot 1 (needed for tex4x4 compressed)
+    // Bank C (128K): Sub engine BG at 0x6200000
+    // Bank D (128K): Main engine BG at 0x6000000 (OFS=0) - 2D BG behind 3D
+    // Bank F (16K):  3D texture palette slot 0
+    // Bank H (32K):  Sub engine BG extended palette
+    vramSetBankA(VRAM_A_TEXTURE);
+    vramSetBankB(VRAM_B_TEXTURE);
+    vramSetBankC(VRAM_C_SUB_BG);
+    vramSetBankD(VRAM_D_MAIN_BG_0x06000000);
 
     vramSetBankF(VRAM_F_TEX_PALETTE);  // 3D texture palettes
     vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);  // Sub screen BG extended palettes
@@ -416,8 +425,6 @@ void Game::Init(int level)
     // Enable extended palettes for sub screen
     bgExtPaletteEnableSub();
 
-    // Initialize 3D (after VRAM setup!)
-    // Note: Background is loaded by LoadLevelFromFile based on level's bgID
     glInit();
 
     glEnable(GL_TEXTURE_2D);
@@ -426,10 +433,6 @@ void Game::Init(int level)
 
     glSetOutlineColor(0, RGB15(31, 0, 0));
 
-    
-    // The background must be fully opaque and have a unique polygon ID
-    // (different from the polygons that are going to be drawn) so that
-    // alpha blending works.
     GridMesh::LoadGridMesh(&grid);
 
     size_t mesh = 0;
@@ -492,6 +495,136 @@ void Game::Init(int level)
                 0.0, 1.0, 0.0,  // Look at
                 0.0, 1.0, 0.0); // Up
     
+    // Setup some material properties
+    glMaterialf(GL_AMBIENT, RGB15(0, 0, 0));
+    glMaterialf(GL_DIFFUSE, RGB15(31, 31, 31));
+    glMaterialf(GL_SPECULAR, RGB15(0, 0, 0));
+    glMaterialf(GL_EMISSION, RGB15(0, 0, 0));
+
+    // Setup lights
+    glLight(0, RGB15(31, 31, 31), floattov10(-1.0), floattov10(-1.0), floattov10(-1.0));
+    glLight(1, RGB15(31, 31, 31), floattov10(-0.75), floattov10(-0.75), floattov10(-0.75));
+
+    int brightness = 16;
+    for (int i = 0; i < 16 ; i++)
+    {
+        if (brightness > 0)
+        {
+            brightness--;
+            setBrightness(3, brightness);
+        }
+        swiWaitForVBlank();
+    }
+}
+
+void Game::InitCustom(const char* jsonPath)
+{
+    // Blank screen during loading (prevents magenta artifacts)
+    setBrightness(3, 16);
+
+    // Debug console - outputs to emulator debug window (melonDS terminal / no$gba)
+    consoleDebugInit(DebugDevice_NOCASH);
+    fprintf(stderr, "[INIT] Game::InitCustom path=%s\n", jsonPath);
+
+    // Mark as custom level
+    isCustomLevel = true;
+    strncpy(customLevelPath, jsonPath, sizeof(customLevelPath) - 1);
+    customLevelPath[sizeof(customLevelPath) - 1] = '\0';
+
+    // Store current level
+    currentLevel = -1;
+
+    // Reset game state
+    gameState = GameState::PLAYING;
+    timer_frames = 0;
+    timer_running = true;
+    isNewRecord = false;
+    selectedOption = MenuOption::NONE;
+
+    // Reset touch state
+    touch_selected_car = -1;
+    touch_dragging = false;
+
+    idMesh = 0;
+    idOrient = 0;
+    idTex = 0;
+
+    edit_car = 0;
+
+    lcdMainOnBottom();
+    videoSetMode(MODE_0_3D);
+    videoSetModeSub(MODE_0_2D);
+
+    // Clear only main BG VRAM (Bank D) - sub BG (Bank C) and ext palettes (Bank H)
+    // are preserved since the sub background (TopScreen) never changes
+    vramSetBankD(VRAM_D_LCD);
+    memset((void*)VRAM_D, 0, 128 * 1024);
+
+    vramSetBankA(VRAM_A_TEXTURE);
+    vramSetBankB(VRAM_B_TEXTURE);
+    vramSetBankC(VRAM_C_SUB_BG);
+    vramSetBankD(VRAM_D_MAIN_BG_0x06000000);
+
+    vramSetBankF(VRAM_F_TEX_PALETTE);
+    vramSetBankH(VRAM_H_SUB_BG_EXT_PALETTE);
+
+    bgExtPaletteEnableSub();
+
+    glInit();
+
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_ANTIALIAS);
+    glEnable(GL_OUTLINE);
+
+    glSetOutlineColor(0, RGB15(31, 0, 0));
+
+    GridMesh::LoadGridMesh(&grid);
+
+    fprintf(stderr, "[InitCustom] VRAM: A=TEX B=TEX C=SUB_BG D=MAIN_BG F=TEX_PAL H=SUB_EXT_PAL\n");
+    fprintf(stderr, "[InitCustom] heapUsed=%u heapFree=%u\n",
+            (unsigned)((uintptr_t)getHeapEnd() - (uintptr_t)getHeapStart()),
+            (unsigned)((uintptr_t)getHeapLimit() - (uintptr_t)getHeapEnd()));
+
+    // Load custom level from JSON (calls LoadBG + LoadBGtop + InitCarAssets)
+    bool loadOk = GameLevelLoader::LoadLevelFromJSON(jsonPath);
+    fprintf(stderr, "[InitCustom] LoadLevelFromJSON=%d\n", loadOk);
+
+    BGFont::FontConfig fontCfg = {
+        .tiles = PeaberryBase_tiles_bin,
+        .tilesSize = PeaberryBase_tiles_bin_size,
+        .palette = PeaberryBase_pal_bin,
+        .paletteSize = PeaberryBase_pal_bin_size,
+        .charWidths = peaberrybase_char_widths,
+        .tileWidth = PEABERRYBASE_TILE_WIDTH,
+        .tileHeight = PEABERRYBASE_TILE_HEIGHT,
+        .columns = PEABERRYBASE_COLUMNS,
+        .tilesPerRow = PEABERRYBASE_TILES_PER_ROW,
+        .firstChar = ' ',
+        .lastChar = '~'
+    };
+
+    BGFont::Init(BGFont::SCREEN_SUB, 0, fontCfg, 3, 5, 0, true);
+
+    // Alpha=0 so 2D background can be seen behind 3D layer
+    glClearColor(0, 0, 0, 0);
+    glClearPolyID(0);  // Must be different from polygon IDs for alpha blending
+
+    glClearDepth(0x7FFF);
+
+    glViewport(0, 0, 255, 191);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+    gluPerspective(70, 256.0 / 192.0, 0.1, 100);
+
+    // Initialization code for the game goes here
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    gluLookAt(0.0, 0.0, 4.0,  // Position
+                0.0, 1.0, 0.0,  // Look at
+                0.0, 1.0, 0.0); // Up
+
     // Setup some material properties
     glMaterialf(GL_AMBIENT, RGB15(0, 0, 0));
     glMaterialf(GL_DIFFUSE, RGB15(31, 31, 31));
@@ -595,8 +728,8 @@ void Game::DrawVictoryMenu()
     uint32_t seconds = total_seconds % 60;
     BGFont::Printf(7, 6, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
 
-    // Draw menu options
-    if (currentLevel < totalLevels - 1) {
+    // Draw menu options (no "Next Level" for custom levels)
+    if (!isCustomLevel && currentLevel < totalLevels - 1) {
         BGFont::Print(9, 9, "Next Level");
     }
     BGFont::Print(12, 11, "Retry");
@@ -624,7 +757,7 @@ Game::MenuOption Game::HandleMenuTouch(bool isPauseMenu)
         else
         {
             // Victory menu: Next Level at row 9, Retry at row 11, Quit at row 13
-            if (currentLevel < totalLevels - 1)
+            if (!isCustomLevel && currentLevel < totalLevels - 1)
             {
                 if (touchRow >= 9 && touchRow <= 10) return MenuOption::NEXT_LEVEL;
                 if (touchRow >= 11 && touchRow <= 12) return MenuOption::RETRY;
@@ -632,7 +765,7 @@ Game::MenuOption Game::HandleMenuTouch(bool isPauseMenu)
             }
             else
             {
-                // No next level available - Retry at row 11, Quit at row 13
+                // No next level available (or custom level) - Retry at row 11, Quit at row 13
                 if (touchRow >= 11 && touchRow <= 12) return MenuOption::RETRY;
                 if (touchRow >= 13) return MenuOption::QUIT;
             }
@@ -758,14 +891,20 @@ Game::UpdateResult Game::Update()
             uint32_t seconds = total_seconds % 60;
 
             // Display current level
-            BGFont::Printf(11, 2, "Level %d", currentLevel + 1);
+            if (isCustomLevel)
+                BGFont::Print(9, 2, "Custom Level");
+            else
+                BGFont::Printf(11, 2, "Level %d", currentLevel + 1);
             // Display timer (MM:SS.mmm)
             BGFont::Printf(8, 4, "Time: %02d:%02d.%03d", minutes, seconds, milliseconds);
 
-            // Display best time for current level
-            char bestTimeStr[16];
-            SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
-            BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
+            // Display best time for current level (skip for custom)
+            if (!isCustomLevel)
+            {
+                char bestTimeStr[16];
+                SaveData::FormatTime(SaveData::GetBestTime(currentLevel), bestTimeStr, sizeof(bestTimeStr));
+                BGFont::Printf(8, 6, "Best: %s", bestTimeStr);
+            }
 
             // Detect victory
             if (CheckVictory())
@@ -775,7 +914,9 @@ Game::UpdateResult Game::Update()
                 MusicStream::PlaySFX(SFX_XYLOPHONE_LEVEL_COMPLETE);
                 gameState = GameState::VICTORY;
                 timer_running = false;
-                isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
+                // Only save best time for built-in levels
+                if (!isCustomLevel)
+                    isNewRecord = SaveData::SetBestTime(currentLevel, timer_frames);
                 break;
             }
 

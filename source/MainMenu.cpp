@@ -349,8 +349,9 @@ void MainMenu::DrawLevelSelectUI()
         }
     }
 
-    // Instructions at bottom
-    BGFont::Print(2, 10, "Touch a level to play");
+    // Custom and Online level buttons (rows 10-11, last visible rows)
+    BGFont::Print(5, 10, "[ Custom Levels ]");
+    BGFont::Print(5, 11, "[ Online Levels ]");
 }
 
 int MainMenu::HandleLevelSelectTouch()
@@ -366,7 +367,17 @@ int MainMenu::HandleLevelSelectTouch()
         int charX = touch.px / 8;
         int charY = touch.py / 16;
 
-        // Check which button was pressed
+        // Check Custom Levels button (row 10)
+        if (charY == 10 && charX >= 5 && charX < 22) {
+            return SELECT_CUSTOM_LEVELS;
+        }
+
+        // Check Online Levels button (row 11)
+        if (charY == 11 && charX >= 5 && charX < 22) {
+            return SELECT_ONLINE_LEVELS;
+        }
+
+        // Check which level button was pressed
         for (int i = 0; i < availableLevels && i < MAX_LEVELS; i++) {
             int row = i / BUTTONS_PER_ROW;
             int col = i % BUTTONS_PER_ROW;
@@ -397,6 +408,13 @@ int MainMenu::ShowLevelSelect()
         MusicStream::Update();
 
         int selected = HandleLevelSelectTouch();
+
+        // Handle sentinel values for special buttons
+        if (selected == SELECT_CUSTOM_LEVELS || selected == SELECT_ONLINE_LEVELS) {
+            MusicStream::PlaySFX(SFX_SCI_FI_DESELECT);
+            return selected;
+        }
+
         if (selected >= 0) {
             MusicStream::PlaySFX(SFX_SCI_FI_DESELECT);
             selectedLevel = selected;

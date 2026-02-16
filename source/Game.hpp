@@ -1,5 +1,5 @@
 #pragma once
-#include <dsf.h>
+//#include <dsf.h>
 #include <nds.h>
 #include <iostream>
 #include <filesystem.h>
@@ -87,7 +87,12 @@ namespace Game
     // Total available levels
     inline int totalLevels = 11;
 
+    // Custom level flag
+    inline bool isCustomLevel = false;
+    inline char customLevelPath[256] = {0};
+
     void Init(int level = 0);
+    void InitCustom(const char* jsonPath);  // Init from custom JSON level
     UpdateResult Update();
     void Cleanup();  // Clean up textures and meshes when leaving level
 }
